@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/draw"
@@ -19,7 +20,14 @@ const (
 	FONTSZ     = 14
 	FONTFAMILY = "../../fonts/Karma/Karma-Regular.ttf"
 	FONT_H     = 20
+	NEWLINE    = byte('\n')
 )
+
+// func check_err(err error) error {
+// 	if err != nil && err != io.EOF {
+// 		return err
+// 	}
+// }
 
 type Content struct {
 	lines []string
@@ -32,27 +40,47 @@ func NewContent() *Content {
 }
 
 func (cont *Content) append(line string) {
-	// fmt.Printf("%s | ", string(line))
+	fmt.Printf("%s | ", string(line))
 	cont.lines = append(cont.lines, line)
 	cont.num++
 }
 
 func parseText(cont *Content, filename string, bounds int) (int, error) {
-	textFile, err := os.Open(filename)
+	// textFile, err := os.Open(filename)
+	textBytes, err := os.ReadFile(filename)
 	if err != nil {
 		return -1, err
 	}
 
-	// reader := bufio.NewScanner(strings.NewReader(string(textFile)))
-	buffer := make([]byte, bounds)
+	// reader := bufio.NewReader(strings.NewReader(string(textBytes)))
+	// buffer := make([]byte, bounds)
+	buffer := bytes.NewBuffer(textBytes)
 
 	for err != io.EOF {
-		_, err = textFile.Read(buffer)
-		// if err != nil && err {
+		// nBytes, err := reader.Peek(bounds)
+		nBytes := buffer.Next(bounds)
+		// if err != nil {
 		// 	return -1, err
 		// }
-		cont.append(string(buffer))
+		idx := bytes.IndexByte(nBytes, '\n')
+		if idx != -1 {
+			// buffer, err = reader.ReadBytes('\n')
+			line, err := buffer.ReadBytes('\n')
+			if err != nil {
+				return -1, err
+			}
+			cont.append(string(line))
+		} else {
+			pbytes := make([]byte, bounds)
+			// _, err = reader.Read(buffer)
+			_, err = buffer.Read(pbytes)
+			if err != nil {
+				return -1, err
+			}
+			cont.append(string(pbytes))
+		}
 	}
+
 	return cont.num, nil
 }
 
@@ -83,10 +111,10 @@ func Text(env gui.Env, textFile string) {
 	})
 
 	cont := NewContent()
-	_, err = parseText(cont, textFile, 75)
+	_, err = parseText(cont, textFile, 100)
 	if err != nil {
 		error.Error(err)
-		panic("panic! text file not properly loaded")
+		// panic("panic! text file not properly loaded")
 	}
 
 	loadText := func(drw draw.Image) image.Rectangle {
