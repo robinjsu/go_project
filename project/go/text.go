@@ -4,13 +4,57 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"io"
 	"os"
 
+	"golang.org/x/image/math/fixed"
+
 	"github.com/faiface/gui"
+	"github.com/faiface/gui/win"
 	tt "github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
-	"golang.org/x/image/math/fixed"
 )
+
+const (
+	FONTSZ     = 14
+	FONTFAMILY = "../../fonts/Karma/Karma-Regular.ttf"
+	FONT_H     = 20
+)
+
+type Content struct {
+	lines []string
+	num   int
+}
+
+func NewContent() *Content {
+	c := Content{num: 0}
+	return &c
+}
+
+func (cont *Content) append(line string) {
+	// fmt.Printf("%s | ", string(line))
+	cont.lines = append(cont.lines, line)
+	cont.num++
+}
+
+func parseText(cont *Content, filename string, bounds int) (int, error) {
+	textFile, err := os.Open(filename)
+	if err != nil {
+		return -1, err
+	}
+
+	// reader := bufio.NewScanner(strings.NewReader(string(textFile)))
+	buffer := make([]byte, bounds)
+
+	for err != io.EOF {
+		_, err = textFile.Read(buffer)
+		// if err != nil && err {
+		// 	return -1, err
+		// }
+		cont.append(string(buffer))
+	}
+	return cont.num, nil
+}
 
 func parseFont(file string) (*tt.Font, error) {
 	ttfFile, err := os.ReadFile(file)
@@ -21,14 +65,11 @@ func parseFont(file string) (*tt.Font, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Printf("Parsed Font Family: %s - %s\n", ttf.Name(tt.NameIDFontFamily), ttf.Name(tt.NameIDFontSubfamily))
 
 	return ttf, nil
 }
 
 func Text(env gui.Env, textFile string) {
-	// load ttf file as bytes
-	FONTFAMILY := "../fonts/Karma/Karma-Regular.ttf"
 	// parse bytes and return a pointer to a Font type object
 	fontstyle, err := parseFont(FONTFAMILY)
 	if err != nil {
@@ -41,26 +82,27 @@ func Text(env gui.Env, textFile string) {
 		Size: 0,
 	})
 
-	content, err := os.ReadFile(textFile)
+	cont := NewContent()
+	_, err = parseText(cont, textFile, 75)
 	if err != nil {
 		error.Error(err)
 		panic("panic! text file not properly loaded")
 	}
 
 	loadText := func(drw draw.Image) image.Rectangle {
-		page := image.Rect(0, 0, 900, 600)
-		text := &font.Drawer{
-			Dst:  drw,
-			Src:  image.Black,
-			Face: face,
-			Dot:  fixed.P(12, 12),
+		page := image.Rect(0, 0, 450, 600)
+		draw.Draw(drw, page, image.White, page.Min, draw.Src)
+		for i := 0; i < 10; i++ {
+			// line := image.Rect(0, FONT_H*(i+1), 900, (FONT_H*(i+1))+FONTSZ)
+			text := &font.Drawer{
+				Dst:  drw,
+				Src:  image.Black,
+				Face: face,
+				Dot:  fixed.P(FONTSZ, (FONT_H*(i+1))+FONTSZ),
+			}
+			// draw.Draw(drw, line, image.White, line.Min, draw.Src)
+			text.DrawString(cont.lines[i])
 		}
-
-		fmt.Printf("dot location: %v", text.Dot)
-
-		draw.Draw(drw, page, image.White, image.ZP, draw.Src)
-		text.DrawBytes(content)
-		fmt.Printf("dot location after draw: %v", text.Dot)
 
 		return page
 	}
@@ -69,12 +111,15 @@ func Text(env gui.Env, textFile string) {
 
 	for {
 		select {
-		case _, ok := <-env.Events():
+		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
 				return
 			}
-
+			switch e := e.(type) {
+			case win.MoDown:
+				fmt.Println(e.String())
+			}
 		}
 	}
 }

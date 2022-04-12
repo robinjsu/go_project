@@ -25,7 +25,6 @@ func Display(env gui.Env) {
 				close(env.Draw())
 				return
 			}
-
 		}
 	}
 }
