@@ -23,12 +23,7 @@ const (
 	NEWLINE    = byte('\n')
 )
 
-// func check_err(err error) error {
-// 	if err != nil && err != io.EOF {
-// 		return err
-// 	}
-// }
-
+// Content contains a buffer with text content; each line of text corresponds to text up until the next newline character is found
 type Content struct {
 	lines []string
 	num   int
@@ -58,27 +53,32 @@ func parseText(cont *Content, filename string, bounds int) (int, error) {
 
 	for err != io.EOF {
 		// nBytes, err := reader.Peek(bounds)
-		nBytes := buffer.Next(bounds)
+		// nBytes := buffer.Next(bounds)
 		// if err != nil {
 		// 	return -1, err
 		// }
-		idx := bytes.IndexByte(nBytes, '\n')
-		if idx != -1 {
-			// buffer, err = reader.ReadBytes('\n')
-			line, err := buffer.ReadBytes('\n')
-			if err != nil {
-				return -1, err
-			}
-			cont.append(string(line))
-		} else {
-			pbytes := make([]byte, bounds)
-			// _, err = reader.Read(buffer)
-			_, err = buffer.Read(pbytes)
-			if err != nil {
-				return -1, err
-			}
-			cont.append(string(pbytes))
+		// idx := bytes.IndexByte(nBytes, '\n')
+		line, err := buffer.ReadBytes('\n')
+		if err != nil {
+			return -1, err
 		}
+		cont.append(string(line))
+		// if idx != -1 {
+		// 	// buffer, err = reader.ReadBytes('\n')
+		// 	line, err := buffer.ReadBytes('\n')
+		// 	if err != nil {
+		// 		return -1, err
+		// 	}
+		// 	cont.append(string(line))
+		// } else {
+		// 	pbytes := make([]byte, bounds)
+		// 	// _, err = reader.Read(buffer)
+		// 	_, err = buffer.Read(pbytes)
+		// 	if err != nil {
+		// 		return -1, err
+		// 	}
+		// 	cont.append(string(pbytes))
+		// }
 	}
 
 	return cont.num, nil
