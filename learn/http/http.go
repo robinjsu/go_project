@@ -8,14 +8,16 @@ import (
 )
 
 type WordDef struct {
-	Word string              `json:"word"`
-	Def  []map[string]string `json:"definitions"`
+	Word string       `json:"word"`
+	Def  []Definition `json:"definitions"`
 }
 
 type Definition struct {
-	Definition   string
-	PartOfSpeech string
+	Definition   string `json:"definition"`
+	PartOfSpeech string `json:"partOfSpeech"`
 }
+
+// Implement Unmarshaler interface? To package all unmarshaling/decoding code together
 
 func main() {
 	DICT_KEY := os.Getenv("DICT_API_KEY")
@@ -45,6 +47,6 @@ func main() {
 		return
 	}
 	for i, def := range worddef.Def {
-		fmt.Printf("%d - Def: %v, PoS: %v\n", i, def["definition"], def["partOfSpeech"])
+		fmt.Printf("%d - Definition: %v, Part of Speech: %v\n", i, def.Definition, def.PartOfSpeech)
 	}
 }
