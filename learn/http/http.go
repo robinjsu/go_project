@@ -47,12 +47,4 @@ func main() {
 	for i, def := range worddef.Def {
 		fmt.Printf("%d - Def: %v, PoS: %v\n", i, def["definition"], def["partOfSpeech"])
 	}
-	// err = json.Unmarshal(jsonBody, &definitions)
-	// if err != nil {
-	// 	fmt.Print(err)
-	// 	return
-	// }
-	// for def := range definitions["word"]
-	// fmt.Println(res)
-	// fmt.Println(string(body))
 }
