@@ -57,7 +57,7 @@ func NewContent() *Content {
 
 func (c *Content) Store(pg []byte) error {
 	newPg := Pgraph{}
-	line := string(pg)
+	line := strings.TrimSuffix(string(pg), "\n")
 	sentences := strings.SplitAfter(line, ". ")
 	for _, lin := range sentences {
 		sentence := Sentence{line: lin, numBytes: len(lin), numPixels: 0}
@@ -130,21 +130,17 @@ func Text(env gui.Env, textFile string) {
 	loadText := func(drw draw.Image) image.Rectangle {
 		page := image.Rect(0, 0, 450, 600)
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
-		for i := 0; i < 10; i++ {
-			// line := image.Rect(0, FONT_H*(i+1), 900, (FONT_H*(i+1))+FONTSZ)
+		for i, pg := range cont.pgraph {
 			text := &font.Drawer{
 				Dst:  drw,
 				Src:  image.Black,
 				Face: face,
 				Dot:  fixed.P(FONTSZ, (FONT_H*(i+1))+FONTSZ),
 			}
-			// draw.Draw(drw, line, image.White, line.Min, draw.Src)
-			text.DrawString(cont.pgraph[i].lines[0].line)
+			text.DrawString(pg.lines[0].line)
 		}
-
 		return page
 	}
-
 	env.Draw() <- loadText
 
 	for {
