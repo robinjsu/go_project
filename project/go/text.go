@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"io"
 	"os"
+	"strings"
 
 	"golang.org/x/image/math/fixed"
 
@@ -24,64 +25,73 @@ const (
 )
 
 // Content contains a buffer with text content; each line of text corresponds to text up until the next newline character is found
+// TODO: changing approach to parsing - first take in each paragraph, then have separate function to split each p into smaller parts (maybe even as words) in order to
+// figure out a way to track location of each word and how it should be tracked so that each word can be clicked on to search
+
+type Sentence struct {
+	line      string
+	numBytes  int
+	numPixels int
+}
+type Pgraph struct {
+	// single paragraph, split into slice of strings split at each space
+	lines []Sentence
+	// number of bytes in the entire string
+	num int
+}
 type Content struct {
-	lines []string
-	num   int
+	pgraph []Pgraph
+	num    int
 }
 
 func NewContent() *Content {
-	c := Content{num: 0}
+	c := Content{}
 	return &c
 }
 
-func (cont *Content) append(line string) {
-	fmt.Printf("%s | ", string(line))
-	cont.lines = append(cont.lines, line)
-	cont.num++
+// func (cont *Content) append(line string) {
+// 	// fmt.Printf("%s | ", string(line))
+// 	cont.lines = append(cont.lines, line)
+// 	cont.num++
+// }
+
+func (c *Content) Store(pg []byte) error {
+	newPg := Pgraph{}
+	line := string(pg)
+	sentences := strings.SplitAfter(line, ". ")
+	for _, lin := range sentences {
+		sentence := Sentence{line: lin, numBytes: len(lin), numPixels: 0}
+		newPg.lines = append(newPg.lines, sentence)
+	}
+	newPg.num = len(sentences)
+	c.pgraph = append(c.pgraph, newPg)
+	c.num++
+	return nil
 }
 
 func parseText(cont *Content, filename string, bounds int) (int, error) {
-	// textFile, err := os.Open(filename)
-	textBytes, err := os.ReadFile(filename)
+	// c := NewContent()
+	content, err := os.ReadFile(filename)
 	if err != nil {
+		fmt.Printf("Error reading file! %v\n", err)
 		return -1, err
 	}
 
-	// reader := bufio.NewReader(strings.NewReader(string(textBytes)))
-	// buffer := make([]byte, bounds)
-	buffer := bytes.NewBuffer(textBytes)
-
-	for err != io.EOF {
-		// nBytes, err := reader.Peek(bounds)
-		// nBytes := buffer.Next(bounds)
-		// if err != nil {
-		// 	return -1, err
-		// }
-		// idx := bytes.IndexByte(nBytes, '\n')
-		line, err := buffer.ReadBytes('\n')
+	buffer := bytes.NewBuffer(content)
+	p, err := buffer.ReadBytes('\n')
+	cont.Store(p)
+	for p != nil {
+		p, err = buffer.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
+			fmt.Printf("Error reading buffer: %v\n", err)
 			return -1, err
 		}
-		cont.append(string(line))
-		// if idx != -1 {
-		// 	// buffer, err = reader.ReadBytes('\n')
-		// 	line, err := buffer.ReadBytes('\n')
-		// 	if err != nil {
-		// 		return -1, err
-		// 	}
-		// 	cont.append(string(line))
-		// } else {
-		// 	pbytes := make([]byte, bounds)
-		// 	// _, err = reader.Read(buffer)
-		// 	_, err = buffer.Read(pbytes)
-		// 	if err != nil {
-		// 		return -1, err
-		// 	}
-		// 	cont.append(string(pbytes))
-		// }
+		cont.Store(p)
 	}
-
-	return cont.num, nil
+	return 0, nil
 }
 
 func parseFont(file string) (*tt.Font, error) {
@@ -129,7 +139,7 @@ func Text(env gui.Env, textFile string) {
 				Dot:  fixed.P(FONTSZ, (FONT_H*(i+1))+FONTSZ),
 			}
 			// draw.Draw(drw, line, image.White, line.Min, draw.Src)
-			text.DrawString(cont.lines[i])
+			text.DrawString(cont.pgraph[i].lines[0].line)
 		}
 
 		return page

@@ -6,9 +6,14 @@ import (
 	"github.com/faiface/mainthread"
 )
 
+const (
+	WIDTH  = 1200
+	HEIGHT = 900
+)
+
 func run() {
 	// create GUI window (not resizable for now)
-	window, err := win.New(win.Title("Text Reader Aide"), win.Size(900, 600))
+	window, err := win.New(win.Title("Text Reader Aide"), win.Size(WIDTH, HEIGHT))
 	if err != nil {
 		panic(err)
 	}
@@ -17,7 +22,7 @@ func run() {
 	mux, mainEnv := gui.NewMux(window)
 
 	go Display(mux.MakeEnv())
-	go Text(mux.MakeEnv(), "./test.txt")
+	go Text(mux.MakeEnv(), "./alice.txt")
 
 	for evnt := range mainEnv.Events() {
 		switch evnt.(type) {
