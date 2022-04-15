@@ -13,15 +13,7 @@ import (
 
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
-	tt "github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
-)
-
-const (
-	FONTSZ     = 14
-	FONTFAMILY = "../../fonts/Karma/Karma-Regular.ttf"
-	FONT_H     = 20
-	NEWLINE    = byte('\n')
 )
 
 // Content contains a buffer with text content; each line of text corresponds to text up until the next newline character is found
@@ -29,9 +21,9 @@ const (
 // figure out a way to track location of each word and how it should be tracked so that each word can be clicked on to search
 
 type Sentence struct {
-	line      string
-	numBytes  int
-	numPixels int
+	line     string
+	numBytes int
+	advance  fixed.Int26_6
 }
 type Pgraph struct {
 	// single paragraph, split into slice of strings split at each space
@@ -49,18 +41,13 @@ func NewContent() *Content {
 	return &c
 }
 
-// func (cont *Content) append(line string) {
-// 	// fmt.Printf("%s | ", string(line))
-// 	cont.lines = append(cont.lines, line)
-// 	cont.num++
-// }
-
-func (c *Content) Store(pg []byte) error {
+func (c *Content) Store(pg []byte, face *font.Face) error {
 	newPg := Pgraph{}
 	line := strings.TrimSuffix(string(pg), "\n")
 	sentences := strings.SplitAfter(line, ". ")
 	for _, lin := range sentences {
-		sentence := Sentence{line: lin, numBytes: len(lin), numPixels: 0}
+		adv := font.MeasureString(*face, lin)
+		sentence := Sentence{line: lin, numBytes: len(lin), advance: adv}
 		newPg.lines = append(newPg.lines, sentence)
 	}
 	newPg.num = len(sentences)
@@ -69,8 +56,15 @@ func (c *Content) Store(pg []byte) error {
 	return nil
 }
 
-func parseText(cont *Content, filename string, bounds int) (int, error) {
-	// c := NewContent()
+// func (c *Content) setBounds(f font.Face) error {
+// 	for i, s := range c.pgraph {
+
+// 	}
+
+// 	return nil
+// }
+
+func parseText(cont *Content, filename string, face font.Face) (int, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("Error reading file! %v\n", err)
@@ -79,7 +73,7 @@ func parseText(cont *Content, filename string, bounds int) (int, error) {
 
 	buffer := bytes.NewBuffer(content)
 	p, err := buffer.ReadBytes('\n')
-	cont.Store(p)
+	cont.Store(p, &face)
 	for p != nil {
 		p, err = buffer.ReadBytes('\n')
 		if err == io.EOF {
@@ -89,46 +83,14 @@ func parseText(cont *Content, filename string, bounds int) (int, error) {
 			fmt.Printf("Error reading buffer: %v\n", err)
 			return -1, err
 		}
-		cont.Store(p)
+		cont.Store(p, &face)
 	}
 	return 0, nil
 }
 
-func parseFont(file string) (*tt.Font, error) {
-	ttfFile, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-	ttf, err := tt.Parse(ttfFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return ttf, nil
-}
-
-func Text(env gui.Env, textFile string) {
-	// parse bytes and return a pointer to a Font type object
-	fontstyle, err := parseFont(FONTFAMILY)
-	if err != nil {
-		error.Error(err)
-		panic("panic! TTF file not properly loaded")
-	}
-	// create face, which provides the `glyph mask images``
-	face := tt.NewFace(fontstyle, &tt.Options{
-		// options... here just font size (0 is 12-point default)
-		Size: 0,
-	})
-
-	cont := NewContent()
-	_, err = parseText(cont, textFile, 100)
-	if err != nil {
-		error.Error(err)
-		// panic("panic! text file not properly loaded")
-	}
-
-	loadText := func(drw draw.Image) image.Rectangle {
-		page := image.Rect(0, 0, 450, 600)
+func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle {
+	load := func(drw draw.Image) image.Rectangle {
+		page := image.Rect(0, 0, 900, 600)
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
 		for i, pg := range cont.pgraph {
 			text := &font.Drawer{
@@ -141,6 +103,19 @@ func Text(env gui.Env, textFile string) {
 		}
 		return page
 	}
+	return load
+}
+
+func Text(env gui.Env, textFile string) {
+	fontFaces := loadFonts(FONT_REG, FONT_BOLD)
+
+	cont := NewContent()
+	_, err := parseText(cont, textFile, fontFaces["regular"])
+	if err != nil {
+		error.Error(err)
+		// panic("panic! text file not properly loaded")
+	}
+	loadText := loadTxt(fontFaces["regular"], cont)
 	env.Draw() <- loadText
 
 	for {
@@ -153,6 +128,9 @@ func Text(env gui.Env, textFile string) {
 			switch e := e.(type) {
 			case win.MoDown:
 				fmt.Println(e.String())
+			case win.MoUp:
+				loadText := loadTxt(fontFaces["bold"], cont)
+				env.Draw() <- loadText
 			}
 		}
 	}
