@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	lineW = 150
+	maxLineW = 150
 )
 
 type Sentence struct {
@@ -55,9 +55,9 @@ type Formatted struct {
 	span int
 }
 
-func endsInSpace(lookAhead string) bool {
-	lastChar := lookAhead[lineW]
-	secondToLastChar := lookAhead[lineW-1]
+func endsInSpace(lookAhead []byte) bool {
+	lastChar := lookAhead[maxLineW]
+	secondToLastChar := lookAhead[maxLineW-1]
 	return unicode.IsSpace(rune(lastChar)) && unicode.IsSpace(rune(secondToLastChar))
 }
 
@@ -65,43 +65,40 @@ func formatLines(c *Content) []Formatted {
 	var fmtLines []Formatted
 	var p []byte
 	var idx int
-	maxLineW := 150
 
 	buffer := bufio.NewReader(bytes.NewBuffer(c.fullText))
 	lookAhead, err := buffer.Peek(maxLineW + 1)
 	if err != nil {
 		panic(err)
 	}
-	if !endsInSpace(string(lookAhead)) {
+	if !endsInSpace(lookAhead) {
 		idx = bytes.LastIndexAny(lookAhead, " ")
-		fmt.Print(idx)
-		p = make([]byte, idx, idx)
 	} else {
 		idx = maxLineW
-		p = make([]byte, maxLineW, maxLineW)
 	}
+	p = make([]byte, idx, idx)
 	_, err = buffer.Read(p)
 	if err != nil {
 		panic(err)
 	}
 	fmtLines = append(fmtLines, Formatted{txt: string(lookAhead[0:idx]), span: idx})
+
 	for i := 0; i < 10; i++ {
 		lookAhead, err := buffer.Peek(maxLineW + 1)
 		if err != nil {
 			panic(err)
 		}
-		if !endsInSpace(string(lookAhead)) {
+		if !endsInSpace(lookAhead) {
 			idx = bytes.LastIndex(lookAhead, []byte(" "))
-			p = make([]byte, idx, idx)
 		} else {
 			idx = maxLineW
-			p = make([]byte, maxLineW, idx)
 		}
+		p = make([]byte, idx, idx)
 		_, err = buffer.Read(p)
 		if err != nil {
 			panic(err)
 		}
-		fmtLines = append(fmtLines, Formatted{txt: string(lookAhead[0:idx]), span: idx})
+		fmtLines = append(fmtLines, Formatted{txt: string(p), span: idx})
 	}
 
 	return fmtLines
@@ -117,8 +114,7 @@ func main() {
 	c.fullText = content
 	lines := formatLines(c)
 	for _, l := range lines {
-		fmt.Printf("%v\n\n", l.txt)
-
+		fmt.Printf("%v %d\n\n", l.txt, l.span)
 	}
 
 	// buffer := bytes.NewBuffer(content)
