@@ -95,8 +95,10 @@ func (c *Content) formatLines() []Formatted {
 	if err != nil {
 		panic(err)
 	}
-	if !endsInSpace(lookAhead) {
-		idx = bytes.LastIndexAny(lookAhead, " ")
+	if bytes.ContainsRune(lookAhead, rune('\n')) {
+		idx = bytes.IndexRune(lookAhead, rune('\n')) + 1
+	} else if !endsInSpace(lookAhead) {
+		idx = bytes.LastIndexAny(lookAhead, " ") + 1
 	} else {
 		idx = maxLineW
 	}
@@ -117,8 +119,10 @@ func (c *Content) formatLines() []Formatted {
 		if err != nil && err != io.EOF {
 			panic(err)
 		}
-		if !endsInSpace(lookAhead) {
-			idx = bytes.LastIndex(lookAhead, []byte(" "))
+		if bytes.ContainsRune(lookAhead, rune('\n')) {
+			idx = bytes.IndexRune(lookAhead, rune('\n')) + 1
+		} else if !endsInSpace(lookAhead) {
+			idx = bytes.LastIndexAny(lookAhead, " ") + 1
 		} else {
 			idx = maxLineW
 		}
@@ -127,7 +131,8 @@ func (c *Content) formatLines() []Formatted {
 		if err != nil && err != io.EOF {
 			panic(err)
 		}
-		fmtLines = append(fmtLines, Formatted{txt: string(p), span: idx})
+		ptrim := strings.TrimSuffix(string(p), "\n")
+		fmtLines = append(fmtLines, Formatted{txt: ptrim, span: idx})
 	}
 	c.format = fmtLines
 	return fmtLines

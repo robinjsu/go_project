@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	"io"
 	"os"
@@ -14,6 +15,18 @@ import (
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
 	"golang.org/x/image/font"
+)
+
+const (
+	MAXWIDTH  = 1200
+	TEXTWIDTH = 900
+	HEIGHT    = 900
+	FONTSZ    = 16
+	FONT_REG  = "../../fonts/Karma/Karma-Regular.ttf"
+	FONT_BOLD = "../../fonts/Karma/Karma-Bold.ttf"
+	FONT_H    = 20
+	NEWLINE   = byte('\n')
+	maxLineW  = 125
 )
 
 // Content contains a buffer with text content; each line of text corresponds to text up until the next newline character is found
@@ -36,18 +49,18 @@ func (c *Content) Store(pg []byte, face *font.Face) error {
 	return nil
 }
 
-func parseText(cont *Content, filename string, face font.Face) (int, error) {
+func (c *Content) parseText(filename string, face font.Face) (int, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("Error reading file! %v\n", err)
 		return -1, err
 	}
-	cont.fullText = content
+	c.fullText = content
 	// TODO: refactor to simplify
-	cont.formatLines()
+	c.formatLines()
 	buffer := bytes.NewBuffer(content)
 	p, err := buffer.ReadBytes('\n')
-	cont.Store(p, &face)
+	c.Store(p, &face)
 	for p != nil {
 		p, err = buffer.ReadBytes('\n')
 		if err == io.EOF {
@@ -57,15 +70,15 @@ func parseText(cont *Content, filename string, face font.Face) (int, error) {
 			fmt.Printf("Error reading buffer: %v\n", err)
 			return -1, err
 		}
-		cont.Store(p, &face)
+		c.Store(p, &face)
 	}
 	return 0, nil
 }
 
-func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle {
+func (cont *Content) loadTxt(face font.Face) func(drw draw.Image) image.Rectangle {
 	load := func(drw draw.Image) image.Rectangle {
 		// coordinates refer to the destination image's coordinate space
-		page := image.Rect(0, 0, 900, 600)
+		page := image.Rect(0, 0, 900, 900)
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
 		for i, lns := range cont.format {
 			text := &font.Drawer{
@@ -74,9 +87,7 @@ func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle
 				Face: face,
 				Dot:  fixed.P(FONTSZ, (FONT_H*(i+1))+FONTSZ),
 			}
-			bounds, _ := font.BoundString(face, lns.txt)
-			lns.bounds = bounds
-			fmt.Print(bounds)
+			cont.format[i].bounds, _ = text.BoundString(lns.txt)
 			text.DrawString(lns.txt)
 		}
 		return page
@@ -84,15 +95,30 @@ func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle
 	return load
 }
 
+func highlightLine(face font.Face, cont *Content, p image.Point) func(drw draw.Image) image.Rectangle {
+	var line image.Rectangle
+	load := func(drw draw.Image) image.Rectangle {
+		for _, ln := range cont.format {
+			rct := ln.bounds
+			if p.Y >= (rct.Min.Y).Floor() && p.Y <= (rct.Max.Y).Ceil() && p.X <= TEXTWIDTH {
+				line = image.Rect((rct.Min.X).Floor(), (rct.Min.Y).Floor(), (rct.Max.X).Floor(), (rct.Max.Y).Floor())
+				draw.Draw(drw, line, &image.Uniform{color.RGBA{0, 0, 255, 100}}, image.ZP, draw.Over)
+			}
+		}
+		return line
+	}
+	return load
+}
+
 func Text(env gui.Env, textFile string) {
 	fontFaces := loadFonts(FONT_REG, FONT_BOLD)
 	cont := NewContent()
-	_, err := parseText(cont, textFile, fontFaces["regular"])
+	_, err := cont.parseText(textFile, fontFaces["regular"])
 	if err != nil {
 		error.Error(err)
 		// panic("panic! text file not properly loaded")
 	}
-	loadText := loadTxt(fontFaces["regular"], cont)
+	loadText := cont.loadTxt(fontFaces["regular"])
 	env.Draw() <- loadText
 
 	for {
@@ -104,10 +130,12 @@ func Text(env gui.Env, textFile string) {
 			}
 			switch e := e.(type) {
 			case win.MoDown:
-				fmt.Println(e.String())
+				fmt.Println(e.X, e.Y)
 			case win.MoUp:
-				loadText = loadTxt(fontFaces["bold"], cont)
+				loadText = cont.loadTxt(fontFaces["regular"])
+				highlight := highlightLine(fontFaces["bold"], cont, image.Pt(e.X, e.Y))
 				env.Draw() <- loadText
+				env.Draw() <- highlight
 			}
 		}
 	}
