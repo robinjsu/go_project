@@ -1,10 +1,9 @@
 from multiprocessing import Process, Pipe, JoinableQueue
+from pickletools import read_unicodestring4
+from queue import Queue
 import threading
 import time
 import asyncio
-
-
-
 
 # this is equivalent to basic_chan() in ./channels.go/ 
 # like an unbuffered channel in Go
@@ -30,6 +29,28 @@ def pipe(msg):
     # optional argument for a timeout
     p.join()
 
+
+# https://docs.python.org/3/library/queue.html
+def exampleQueue():
+    q = Queue()
+
+    def worker():
+        while True:
+            item = q.get()
+            print(f'Working on {item}')
+            print(f'Finished {item}')
+            q.task_done()
+
+    # Turn-on the worker thread.
+    threading.Thread(target=worker, daemon=True).start()
+
+    # Send thirty task requests to the worker.
+    for item in range(30):
+        q.put(item)
+
+    # Block until all tasks are done.
+    q.join()
+    print('All work completed')  
 
 
 # if it's unknown how many items will be put in a queue, how to structure the while loop on #42? 
@@ -63,36 +84,39 @@ def queue():
     p1.join()
     # q.close()
 
-def send_t(q):
+
+def send_t(q: Queue):
         for i in range(10):
             print(f'sending {i}')
             q.put(i)
-        print(f'producer done')
-        q.put(-1)
         q.join()
-        print('queue done')
+        print(f'producer done')
+        return
     
-def receive_t(q):
+def receive_t(q: Queue, e: threading.Event):
     while True:
         item = q.get()
         print(f'received: {item}')
         q.task_done()
-        if item == -1:
-            break
-        
-def queue_threading():
-    q = JoinableQueue(4)
-    t1 = threading.Thread(target=send_t, args=(q,))
-    t2 = threading.Thread(target=receive_t, args=(q,))
-    t2.start()
-    t1.start()
-    # q.join()
-    # print('queue finished')
-    t2.join()
-    t1.join()
+        if e.is_set():
+            return    
 
+def queue_threading():
+    q = Queue(4)
+    done = threading.Event()
+    t1 = threading.Thread(target=send_t, args=(q,))
+    t2 = threading.Thread(target=receive_t, args=(q,done))
+    t1.start()
+    t2.start()
+    t1.join()
+    # print('put -1')
+    for i in range(10,20):
+        q.put(i)
+    done.set()
+    
 
 if __name__ == "__main__":
     # queue()
     # pipe("hello, robin!")
+    # exampleQueue()
     queue_threading()
