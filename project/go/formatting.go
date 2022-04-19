@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -13,27 +14,84 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-type Sentence struct {
-	line     string
-	numBytes int
-	advance  fixed.Int26_6
-}
-type Pgraph struct {
-	// single paragraph, split into slice of strings split at each space
-	lines []Sentence
-	// number of bytes in the entire string
-	num int
+type Formatted struct {
+	txt    string
+	span   fixed.Int26_6
+	bounds fixed.Rectangle26_6
 }
 type Content struct {
 	fullText []byte
 	format   []Formatted
-	pgraph   []Pgraph
-	num      int
 }
 
 func NewContent() *Content {
 	c := Content{}
 	return &c
+}
+
+func (c *Content) parseText(filename string, face font.Face) (int, error) {
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Printf("Error reading file! %v\n", err)
+		return -1, err
+	}
+	c.fullText = content
+	c.formatLines()
+
+	return 0, nil
+}
+
+func (c *Content) formatLines() []Formatted {
+	var fmtLines []Formatted
+	var p []byte
+	var idx int
+
+	buffer := bufio.NewReader(bytes.NewBuffer(c.fullText))
+	lookAhead, err := buffer.Peek(maxLineW + 1)
+	if err != nil {
+		panic(err)
+	}
+	if bytes.ContainsRune(lookAhead, rune('\n')) {
+		idx = bytes.IndexRune(lookAhead, rune('\n')) + 1
+	} else if !endsInSpace(lookAhead) {
+		idx = bytes.LastIndexAny(lookAhead, " ") + 1
+	} else {
+		idx = maxLineW
+	}
+	p = make([]byte, idx, idx)
+	n, err := buffer.Read(p)
+	if err != nil {
+		panic(err)
+	}
+	fmtLines = append(fmtLines, Formatted{txt: string(lookAhead[0:idx])})
+
+	for n != 0 {
+		length := buffer.Buffered()
+		if length < maxLineW {
+			lookAhead, err = buffer.Peek(length)
+		} else {
+			lookAhead, err = buffer.Peek(maxLineW + 1)
+		}
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		if bytes.ContainsRune(lookAhead, rune('\n')) {
+			idx = bytes.IndexRune(lookAhead, rune('\n')) + 1
+		} else if !endsInSpace(lookAhead) {
+			idx = bytes.LastIndexAny(lookAhead, " ") + 1
+		} else {
+			idx = maxLineW
+		}
+		p = make([]byte, idx, idx)
+		n, err = buffer.Read(p)
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		ptrim := strings.TrimSuffix(string(p), "\n")
+		fmtLines = append(fmtLines, Formatted{txt: ptrim})
+	}
+	c.format = fmtLines
+	return fmtLines
 }
 
 func parseFont(file string) (*tt.Font, error) {
@@ -73,67 +131,8 @@ func loadFonts(fonts ...string) map[string]font.Face {
 	return fontFaces
 }
 
-type Formatted struct {
-	txt    string
-	span   int
-	bounds fixed.Rectangle26_6
-}
-
 func endsInSpace(lookAhead []byte) bool {
 	lastChar := lookAhead[len(lookAhead)-1]
 	secondToLastChar := lookAhead[len(lookAhead)-2]
 	return unicode.IsSpace(rune(lastChar)) && unicode.IsSpace(rune(secondToLastChar))
-}
-
-func (c *Content) formatLines() []Formatted {
-	var fmtLines []Formatted
-	var p []byte
-	var idx int
-
-	buffer := bufio.NewReader(bytes.NewBuffer(c.fullText))
-	lookAhead, err := buffer.Peek(maxLineW + 1)
-	if err != nil {
-		panic(err)
-	}
-	if bytes.ContainsRune(lookAhead, rune('\n')) {
-		idx = bytes.IndexRune(lookAhead, rune('\n')) + 1
-	} else if !endsInSpace(lookAhead) {
-		idx = bytes.LastIndexAny(lookAhead, " ") + 1
-	} else {
-		idx = maxLineW
-	}
-	p = make([]byte, idx, idx)
-	n, err := buffer.Read(p)
-	if err != nil {
-		panic(err)
-	}
-	fmtLines = append(fmtLines, Formatted{txt: string(lookAhead[0:idx]), span: idx})
-
-	for n != 0 {
-		length := buffer.Buffered()
-		if length < maxLineW {
-			lookAhead, err = buffer.Peek(length)
-		} else {
-			lookAhead, err = buffer.Peek(maxLineW + 1)
-		}
-		if err != nil && err != io.EOF {
-			panic(err)
-		}
-		if bytes.ContainsRune(lookAhead, rune('\n')) {
-			idx = bytes.IndexRune(lookAhead, rune('\n')) + 1
-		} else if !endsInSpace(lookAhead) {
-			idx = bytes.LastIndexAny(lookAhead, " ") + 1
-		} else {
-			idx = maxLineW
-		}
-		p = make([]byte, idx, idx)
-		n, err = buffer.Read(p)
-		if err != nil && err != io.EOF {
-			panic(err)
-		}
-		ptrim := strings.TrimSuffix(string(p), "\n")
-		fmtLines = append(fmtLines, Formatted{txt: ptrim, span: idx})
-	}
-	c.format = fmtLines
-	return fmtLines
 }
