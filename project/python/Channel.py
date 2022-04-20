@@ -3,8 +3,6 @@ import queue
 from queue import Queue, Empty
 import typing, threading
 
-
-
 # base class for event "channels"
 class Channel:
     qIn: Queue
@@ -18,7 +16,8 @@ class Channel:
 
 
     def receive(self) -> None:
-        while self.close.is_set() != True:
-            item = self.qIn.get()
-            print(f'received {item}')
-            self.qIn.task_done()
+        # if self.close.is_set() != True:
+        item = self.qIn.get()
+        print(f'received {item}')
+        self.qIn.task_done()
+        return item
