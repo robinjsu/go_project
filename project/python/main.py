@@ -3,13 +3,16 @@ from Env import Env, Mux
         
 
 def main():
-    main_env = Mux()
+    mainEnv = Mux()
+    subEnv = mainEnv.makeNewEnv("sub")
     open = True
-    main_thread = threading.Thread(target=main_env.poll_events)
-    main_thread.start()
-    while open == True:
-        for i in range(10):
-            main_env.send(i)
+    mainThread = threading.Thread(target=mainEnv.poll_events)
+    subThread = threading.Thread(target=subEnv.poll_events)
+    mainThread.start()
+    subThread.start()
+    mainEnv.send("hello main Env!")
+    mainEnv.relayMsg("sub", "hello Sub Env!!")
+
 
 if __name__ == '__main__':
     main()
