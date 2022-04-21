@@ -46,7 +46,7 @@ func (c *Content) formatLines() []Formatted {
 	var p []byte
 	var idx int
 
-	buffer := bufio.NewReader(bytes.NewBuffer(c.fullText))
+	buffer := bufio.NewReaderSize(bytes.NewBuffer(c.fullText), len(c.fullText))
 	lookAhead, err := buffer.Peek(maxLineW + 1)
 	if err != nil {
 		panic(err)
@@ -132,6 +132,9 @@ func loadFonts(fonts ...string) map[string]font.Face {
 }
 
 func endsInSpace(lookAhead []byte) bool {
+	if len(lookAhead) == 0 {
+		return true
+	}
 	lastChar := lookAhead[len(lookAhead)-1]
 	secondToLastChar := lookAhead[len(lookAhead)-2]
 	return unicode.IsSpace(rune(lastChar)) && unicode.IsSpace(rune(secondToLastChar))
