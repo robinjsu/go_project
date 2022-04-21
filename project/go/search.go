@@ -56,16 +56,17 @@ func displayWords(wordList []string, face font.Face, bounds image.Rectangle) fun
 		textImages = append(textImages, img)
 	}
 	searchBar := func(drw draw.Image) image.Rectangle {
-		newRect := bounds
-		draw.Draw(drw, newRect, &image.Uniform{color.RGBA{0, 150, 100, 255}}, image.ZP, draw.Over)
+		newR := bounds
+		draw.Draw(drw, newR, &image.Uniform{color.RGBA{0, 150, 100, 255}}, image.ZP, draw.Over)
+		y := face.Metrics().Height.Ceil() * 2
 		for i, img := range textImages {
 			x1 := img.Bounds().Dx()
-			y := img.Bounds().Dy()
 			fmt.Println(x1, y)
-			fRect := image.Rect(MIN_X, (y * i), (x1 + MIN_X), (y * (i + 1)))
-			draw.Draw(drw, fRect, img, image.ZP, draw.Over)
+			fontR := image.Rect(MIN_X, (y * i), (x1 + MIN_X), (y * (i + 1)))
+			// padded := fRect.Inset(-2)
+			draw.Draw(drw, fontR, img, image.ZP, draw.Over)
 		}
-		return newRect
+		return newR
 	}
 	return searchBar
 }
