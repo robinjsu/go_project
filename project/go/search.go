@@ -2,10 +2,18 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
 	"strings"
 
 	"github.com/faiface/gui"
-	"github.com/faiface/gui/win"
+	"golang.org/x/image/font"
+	"golang.org/x/image/math/fixed"
+)
+
+const (
+	MIN_X = 900
 )
 
 func isCommon(s string) bool {
@@ -18,7 +26,51 @@ func isCommon(s string) bool {
 	return false
 }
 
-func Search(env gui.Env, words <-chan string) {
+// TODO: a bit more string clean-up to do
+// TODO: display words to side
+// TODO pull definitions
+
+// https://github.com/faiface/gui/blob/master/examples/imageviewer/util.go#L66
+func drawText(s string, face font.Face) image.Image {
+	text := &font.Drawer{
+		Src:  image.Black,
+		Face: face,
+		Dot:  fixed.P(0, face.Metrics().Height.Ceil()),
+	}
+	txtBnds, _ := text.BoundString(s)
+	bounds := image.Rect(
+		txtBnds.Min.X.Floor(),
+		txtBnds.Min.Y.Floor(),
+		txtBnds.Max.X.Ceil(),
+		txtBnds.Max.Y.Ceil(),
+	)
+	text.Dst = image.NewRGBA(bounds)
+	text.DrawString(s)
+	return text.Dst
+}
+
+func displayWords(wordList []string, face font.Face, bounds image.Rectangle) func(draw.Image) image.Rectangle {
+	var textImages []image.Image
+	for _, w := range wordList {
+		img := drawText(w, face)
+		textImages = append(textImages, img)
+	}
+	searchBar := func(drw draw.Image) image.Rectangle {
+		newRect := bounds
+		draw.Draw(drw, newRect, &image.Uniform{color.RGBA{0, 150, 100, 255}}, image.ZP, draw.Over)
+		for i, img := range textImages {
+			x1 := img.Bounds().Dx()
+			y := img.Bounds().Dy()
+			fmt.Println(x1, y)
+			fRect := image.Rect(MIN_X, (y * i), (x1 + MIN_X), (y * (i + 1)))
+			draw.Draw(drw, fRect, img, image.ZP, draw.Over)
+		}
+		return newRect
+	}
+	return searchBar
+}
+
+func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string) {
 
 	for {
 		select {
@@ -27,22 +79,23 @@ func Search(env gui.Env, words <-chan string) {
 			splitWords := strings.Split(lookup, " ")
 			var list []string
 			for _, wd := range splitWords {
-				word := strings.Trim(wd, ",.!?';:“”’\"()")
+				word := strings.Trim(wd, " ,.!?';:“”’\"()")
 				if !isCommon(word) {
-					list = append(list, strings.Trim(wd, ",.!?';:“”’\"()—"))
+					list = append(list, word)
 				}
 			}
-			fmt.Println(list)
-		case e, ok := <-env.Events():
+			wordCorner := image.Rect(900, 0, 1200, 450)
+			env.Draw() <- displayWords(list, fontFaces["regular"], wordCorner)
+		case _, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
 				return
 			}
-			switch e := e.(type) {
-			case win.MoDown:
-				fmt.Println(e.X, e.Y)
-				// case win.MoUp:
-			}
+			// switch e := e.(type) {
+			// case win.MoDown:
+			// 	// fmt.Println(e.X, e.Y)
+			// case win.MoUp:
+			// }
 		}
 	}
 }
