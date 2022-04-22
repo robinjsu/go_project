@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 
 	"golang.org/x/image/math/fixed"
@@ -28,7 +26,7 @@ func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle
 				Dst:  drw,
 				Src:  image.Black,
 				Face: face,
-				Dot:  fixed.P(FONTSZ, (FONT_H*(i+1))+FONTSZ),
+				Dot:  fixed.P(FONTSZ, (i+1)*face.Metrics().Height.Ceil()),
 			}
 			cont.format[i].bounds, cont.format[i].span = text.BoundString(lns.txt)
 			text.DrawString(lns.txt)
@@ -38,23 +36,28 @@ func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle
 	return load
 }
 
-func highlightLine(face font.Face, cont *Content, p image.Point) func(drw draw.Image) image.Rectangle {
+func highlightLine(face font.Face, cont *Content, p image.Point, words chan<- string) func(draw.Image) image.Rectangle {
 	var line image.Rectangle
 	load := func(drw draw.Image) image.Rectangle {
+		var txt string
 		for _, ln := range cont.format {
 			rct := ln.bounds
 			if p.Y >= (rct.Min.Y).Floor() && p.Y <= (rct.Max.Y).Ceil() && p.X <= TEXTWIDTH {
+				txt = ln.txt
 				line = image.Rect((rct.Min.X).Floor(), (rct.Min.Y).Floor(), (rct.Max.X).Floor(), (rct.Max.Y).Floor())
-				draw.Draw(drw, line, &image.Uniform{color.RGBA{0, 0, 255, 100}}, image.ZP, draw.Over)
+				draw.Draw(drw, line, &image.Uniform{HIGHLIGHT_GRAY}, image.ZP, draw.Over)
 			}
 		}
+		// send words to Search component
+		words <- txt
 		return line
 	}
 	return load
 }
 
-func Text(env gui.Env, textFile string) {
-	fontFaces := loadFonts(FONT_REG, FONT_BOLD)
+func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string) {
+	textBounds := image.Rect(0, 0, 900, 900)
+	// fontFaces := loadFonts(FONT_REG, FONT_BOLD)
 	cont := NewContent()
 	_, err := cont.parseText(textFile, fontFaces["regular"])
 	if err != nil {
@@ -73,12 +76,13 @@ func Text(env gui.Env, textFile string) {
 			}
 			switch e := e.(type) {
 			case win.MoDown:
-				fmt.Println(e.X, e.Y)
 			case win.MoUp:
-				loadText = loadTxt(fontFaces["regular"], cont)
-				highlight := highlightLine(fontFaces["bold"], cont, image.Pt(e.X, e.Y))
-				env.Draw() <- loadText
-				env.Draw() <- highlight
+				p := image.Pt(e.X, e.Y)
+				if p.In(textBounds) {
+					env.Draw() <- loadTxt(fontFaces["regular"], cont)
+					load := highlightLine(fontFaces["bold"], cont, image.Pt(e.X, e.Y), words)
+					env.Draw() <- load
+				}
 			}
 		}
 	}

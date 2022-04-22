@@ -2,7 +2,6 @@ package main
 
 import (
 	"image"
-	"image/color"
 	"image/draw"
 	"strings"
 
@@ -74,7 +73,7 @@ func displayWords(wordList []string, face font.Face) []imageObj {
 func drawSearchBar(images []imageObj, bounds image.Rectangle) func(draw.Image) image.Rectangle {
 	searchBar := func(drw draw.Image) image.Rectangle {
 		newR := bounds
-		draw.Draw(drw, newR, &image.Uniform{color.RGBA{0, 150, 100, 255}}, image.ZP, draw.Over)
+		draw.Draw(drw, newR, &image.Uniform{TEAL}, image.ZP, draw.Over)
 		for _, obj := range images {
 			draw.Draw(drw, obj.placement, obj.img, image.ZP, draw.Over)
 		}
@@ -94,7 +93,7 @@ func highlightWord(images []imageObj, p image.Point, drawDst image.Rectangle, de
 	}
 	highlight := func(drw draw.Image) image.Rectangle {
 		draw.Draw(drw, drawDst, image.Transparent, image.ZP, draw.Over)
-		draw.Draw(drw, target, &image.Uniform{color.RGBA{255, 0, 0, 200}}, image.ZP, draw.Over)
+		draw.Draw(drw, target, &image.Uniform{LIGHT_GRAY}, image.ZP, draw.Over)
 		return drawDst
 	}
 	return highlight, lookup

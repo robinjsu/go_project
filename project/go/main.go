@@ -34,7 +34,7 @@ func run() {
 	go Display(mux.MakeEnv())
 	go Text(mux.MakeEnv(), "./alice.txt", fontFaces, words)
 	go Search(mux.MakeEnv(), fontFaces, words, define)
-	go Define(mux.MakeEnv(), define)
+	go Define(mux.MakeEnv(), fontFaces, define)
 
 	for e := range mainEnv.Events() {
 		switch e.(type) {

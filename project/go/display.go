@@ -2,7 +2,6 @@ package main
 
 import (
 	"image"
-	"image/color"
 	"image/draw"
 
 	"github.com/faiface/gui"
@@ -16,7 +15,7 @@ func Display(env gui.Env) {
 		sideBar := image.Rect(0.75*MAXWIDTH, 0, MAXWIDTH, HEIGHT)
 		draw.Draw(drw, mainPage, image.White, image.ZP, draw.Src)
 		draw.Draw(drw, textBar, image.White, textBar.Min, draw.Src)
-		draw.Draw(drw, sideBar, image.NewUniform(color.RGBA{0, 0, 255, 100}), sideBar.Min, draw.Src)
+		draw.Draw(drw, sideBar, image.NewUniform(DEEP_BLUE), sideBar.Min, draw.Src)
 
 		return mainPage
 	}
