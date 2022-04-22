@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -52,46 +51,53 @@ func drawText(s string, face font.Face) (image.Image, Formatted) {
 	return text.Dst, Formatted{txt: s, span: txtAdv, bounds: txtBnds}
 }
 
-func displayWords(wordList []string, face font.Face, bounds image.Rectangle, fmtWords *[]Formatted) func(draw.Image) image.Rectangle {
-	var textImages []image.Image
-	for _, w := range wordList {
+// set images with their bounds outside of the callback, so that they can be stored in the same context
+type imageObj struct {
+	text      Formatted
+	img       image.Image
+	placement image.Rectangle
+}
+
+func displayWords(wordList []string, face font.Face) []imageObj {
+	var images []imageObj
+	y := face.Metrics().Height.Ceil() * 2
+
+	for i, w := range wordList {
 		img, format := drawText(w, face)
-		textImages = append(textImages, img)
-		*fmtWords = append(*fmtWords, format)
+		x1 := img.Bounds().Dx()
+		fontR := image.Rect(MIN_X, (y * i), (x1 + MIN_X), (y * (i + 1)))
+		images = append(images, imageObj{text: format, img: img, placement: fontR})
 	}
+	return images
+}
+
+func drawSearchBar(images []imageObj, bounds image.Rectangle) func(draw.Image) image.Rectangle {
 	searchBar := func(drw draw.Image) image.Rectangle {
 		newR := bounds
 		draw.Draw(drw, newR, &image.Uniform{color.RGBA{0, 150, 100, 255}}, image.ZP, draw.Over)
-		y := face.Metrics().Height.Ceil() * 2
-		for i, img := range textImages {
-			x1 := img.Bounds().Dx()
-			fontR := image.Rect(MIN_X, (y * i), (x1 + MIN_X), (y * (i + 1)))
-			// padded := fRect.Inset(-2)
-			draw.Draw(drw, fontR, img, img.Bounds().Min, draw.Over)
+		for _, obj := range images {
+			draw.Draw(drw, obj.placement, obj.img, image.ZP, draw.Over)
 		}
 		return newR
 	}
 	return searchBar
 }
 
-func highlightWord(words []Formatted, p image.Point, drawDst image.Rectangle, define chan<- string) func(draw.Image) image.Rectangle {
-	highlight := func(drw draw.Image) image.Rectangle {
-		var lookup string
-		draw.Draw(drw, drawDst, image.Transparent, image.ZP, draw.Over)
-		for _, w := range words {
-			fmt.Println(w.bounds)
-			wBounds := image.Rect(w.bounds.Min.X.Floor(), w.bounds.Min.Y.Floor(), w.bounds.Max.X.Ceil(), w.bounds.Max.Y.Ceil())
-			if p.In(wBounds) {
-				lookup = w.txt
-				// hl := image.Rect(wBounds.Min.X, wBounds.Min.Y, wBounds.Max.X, wBounds.Max.Y)
-				draw.Draw(drw, wBounds, &image.Uniform{color.RGBA{255, 0, 0, 200}}, image.ZP, draw.Over)
-			}
+func highlightWord(images []imageObj, p image.Point, drawDst image.Rectangle, define chan<- string) (func(draw.Image) image.Rectangle, string) {
+	var target image.Rectangle
+	var lookup string
+	for _, img := range images {
+		if p.In(img.placement) {
+			lookup = img.text.txt
+			target = img.placement
 		}
-		// fmt.Println(lookup)
-		define <- lookup
+	}
+	highlight := func(drw draw.Image) image.Rectangle {
+		draw.Draw(drw, drawDst, image.Transparent, image.ZP, draw.Over)
+		draw.Draw(drw, target, &image.Uniform{color.RGBA{255, 0, 0, 200}}, image.ZP, draw.Over)
 		return drawDst
 	}
-	return highlight
+	return highlight, lookup
 }
 
 func splitWds(lookup string) []string {
@@ -110,14 +116,13 @@ func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, de
 	wordCorner := image.Rect(900, 0, 1200, 300)
 	// TODO: how to handle when list is still empty?
 	var list []string
-	var fmtWords []Formatted
-	var display func(draw.Image) image.Rectangle
+	var display []imageObj
 	for {
 		select {
 		case lookup := <-words:
 			list = splitWds(lookup)
-			display = displayWords(list, fontFaces["regular"], wordCorner, &fmtWords)
-			env.Draw() <- display
+			display = displayWords(list, fontFaces["regular"])
+			env.Draw() <- drawSearchBar(display, wordCorner)
 		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
@@ -126,8 +131,10 @@ func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, de
 			switch e := e.(type) {
 			case win.MoDown:
 				if image.Pt(e.X, e.Y).In(wordCorner) {
-					env.Draw() <- displayWords(list, fontFaces["regular"], wordCorner, &fmtWords)
-					env.Draw() <- highlightWord(fmtWords, image.Pt(e.X, e.Y), wordCorner, define)
+					env.Draw() <- drawSearchBar(display, wordCorner)
+					highlight, target := highlightWord(display, image.Pt(e.X, e.Y), wordCorner, define)
+					define <- target
+					env.Draw() <- highlight
 				}
 				// case win.MoUp:
 			}
