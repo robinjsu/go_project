@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/faiface/gui"
+	"github.com/faiface/gui/win"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
@@ -26,18 +27,20 @@ func isCommon(s string) bool {
 	return false
 }
 
+// TODO: need to refactor so that scopes better suited to the context! having trouble
+// with accessing the words and images as they are rendered, need way to access them later
 // TODO: a bit more string clean-up to do
 // TODO: display words to side
 // TODO pull definitions
 
 // https://github.com/faiface/gui/blob/master/examples/imageviewer/util.go#L66
-func drawText(s string, face font.Face) image.Image {
+func drawText(s string, face font.Face) (image.Image, Formatted) {
 	text := &font.Drawer{
 		Src:  image.Black,
 		Face: face,
 		Dot:  fixed.P(0, face.Metrics().Height.Ceil()),
 	}
-	txtBnds, _ := text.BoundString(s)
+	txtBnds, txtAdv := text.BoundString(s)
 	bounds := image.Rect(
 		txtBnds.Min.X.Floor(),
 		txtBnds.Min.Y.Floor(),
@@ -46,14 +49,15 @@ func drawText(s string, face font.Face) image.Image {
 	)
 	text.Dst = image.NewRGBA(bounds)
 	text.DrawString(s)
-	return text.Dst
+	return text.Dst, Formatted{txt: s, span: txtAdv, bounds: txtBnds}
 }
 
-func displayWords(wordList []string, face font.Face, bounds image.Rectangle) func(draw.Image) image.Rectangle {
+func displayWords(wordList []string, face font.Face, bounds image.Rectangle, fmtWords *[]Formatted) func(draw.Image) image.Rectangle {
 	var textImages []image.Image
 	for _, w := range wordList {
-		img := drawText(w, face)
+		img, format := drawText(w, face)
 		textImages = append(textImages, img)
+		*fmtWords = append(*fmtWords, format)
 	}
 	searchBar := func(drw draw.Image) image.Rectangle {
 		newR := bounds
@@ -61,42 +65,72 @@ func displayWords(wordList []string, face font.Face, bounds image.Rectangle) fun
 		y := face.Metrics().Height.Ceil() * 2
 		for i, img := range textImages {
 			x1 := img.Bounds().Dx()
-			fmt.Println(x1, y)
 			fontR := image.Rect(MIN_X, (y * i), (x1 + MIN_X), (y * (i + 1)))
 			// padded := fRect.Inset(-2)
-			draw.Draw(drw, fontR, img, image.ZP, draw.Over)
+			draw.Draw(drw, fontR, img, img.Bounds().Min, draw.Over)
 		}
 		return newR
 	}
 	return searchBar
 }
 
-func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string) {
+func highlightWord(words []Formatted, p image.Point, drawDst image.Rectangle, define chan<- string) func(draw.Image) image.Rectangle {
+	highlight := func(drw draw.Image) image.Rectangle {
+		var lookup string
+		draw.Draw(drw, drawDst, image.Transparent, image.ZP, draw.Over)
+		for _, w := range words {
+			fmt.Println(w.bounds)
+			wBounds := image.Rect(w.bounds.Min.X.Floor(), w.bounds.Min.Y.Floor(), w.bounds.Max.X.Ceil(), w.bounds.Max.Y.Ceil())
+			if p.In(wBounds) {
+				lookup = w.txt
+				// hl := image.Rect(wBounds.Min.X, wBounds.Min.Y, wBounds.Max.X, wBounds.Max.Y)
+				draw.Draw(drw, wBounds, &image.Uniform{color.RGBA{255, 0, 0, 200}}, image.ZP, draw.Over)
+			}
+		}
+		// fmt.Println(lookup)
+		define <- lookup
+		return drawDst
+	}
+	return highlight
+}
 
+func splitWds(lookup string) []string {
+	var list []string
+	splitWords := strings.Split(lookup, " ")
+	for _, wd := range splitWords {
+		word := strings.Trim(wd, " ,.!?';:“”’\"()")
+		if !isCommon(word) {
+			list = append(list, word)
+		}
+	}
+	return list
+}
+
+func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, define chan<- string) {
+	wordCorner := image.Rect(900, 0, 1200, 300)
+	// TODO: how to handle when list is still empty?
+	var list []string
+	var fmtWords []Formatted
+	var display func(draw.Image) image.Rectangle
 	for {
 		select {
 		case lookup := <-words:
-			// fmt.Println(lookup)
-			splitWords := strings.Split(lookup, " ")
-			var list []string
-			for _, wd := range splitWords {
-				word := strings.Trim(wd, " ,.!?';:“”’\"()")
-				if !isCommon(word) {
-					list = append(list, word)
-				}
-			}
-			wordCorner := image.Rect(900, 0, 1200, 450)
-			env.Draw() <- displayWords(list, fontFaces["regular"], wordCorner)
-		case _, ok := <-env.Events():
+			list = splitWds(lookup)
+			display = displayWords(list, fontFaces["regular"], wordCorner, &fmtWords)
+			env.Draw() <- display
+		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
 				return
 			}
-			// switch e := e.(type) {
-			// case win.MoDown:
-			// 	// fmt.Println(e.X, e.Y)
-			// case win.MoUp:
-			// }
+			switch e := e.(type) {
+			case win.MoDown:
+				if image.Pt(e.X, e.Y).In(wordCorner) {
+					env.Draw() <- displayWords(list, fontFaces["regular"], wordCorner, &fmtWords)
+					env.Draw() <- highlightWord(fmtWords, image.Pt(e.X, e.Y), wordCorner, define)
+				}
+				// case win.MoUp:
+			}
 		}
 	}
 }

@@ -20,23 +20,29 @@ const (
 
 func run() {
 	// create GUI window (not resizable for now)
-	window, err := win.New(win.Title("Text Reader Aide"), win.Size(MAXWIDTH, HEIGHT))
+	window, err := win.New(win.Title("GoTextAide"), win.Size(MAXWIDTH, HEIGHT))
 	if err != nil {
 		panic(err)
 	}
 
 	//  multiplex main window env
 	mux, mainEnv := gui.NewMux(window)
-
+	fontFaces := loadFonts(FONT_REG, FONT_BOLD)
+	words := make(chan string)
+	define := make(chan string)
+	// each component is muxed from main, occupying its own thread
 	go Display(mux.MakeEnv())
-	go Text(mux.MakeEnv(), "./alice.txt")
+	go Text(mux.MakeEnv(), "./alice.txt", fontFaces, words)
+	go Search(mux.MakeEnv(), fontFaces, words, define)
+	go Define(mux.MakeEnv(), define)
 
-	for evnt := range mainEnv.Events() {
-		switch evnt.(type) {
+	for e := range mainEnv.Events() {
+		switch e.(type) {
 		case win.WiClose:
-			close(window.Draw())
+			close(mainEnv.Draw())
 		}
 	}
+
 }
 
 func main() {
