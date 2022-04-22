@@ -113,7 +113,6 @@ func splitWds(lookup string) []string {
 
 func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, define chan<- string) {
 	wordCorner := image.Rect(900, 0, 1200, 300)
-	// TODO: how to handle when list is still empty?
 	var list []string
 	var display []imageObj
 	for {

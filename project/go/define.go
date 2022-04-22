@@ -24,14 +24,12 @@ func getWord(s string) (WordDef, error) {
 
 func displayDefs(words string, face font.Face, bounds image.Rectangle) func(draw.Image) image.Rectangle {
 	display := func(drw draw.Image) image.Rectangle {
-		paddedX := (bounds.Dx() / 2) - 5
-		paddedY := (bounds.Dy() / 2) - 5
-		newR := image.Rect(bounds.Min.X+paddedX, bounds.Min.Y+paddedY, bounds.Max.X-paddedX, bounds.Max.Y-paddedY)
-		draw.Draw(drw, newR, image.White, image.ZP, draw.Src)
+		newR := image.Rect(bounds.Min.X+MARGIN, bounds.Min.Y+MARGIN, bounds.Max.X-MARGIN, bounds.Max.Y-MARGIN)
+		draw.Draw(drw, newR, image.White, newR.Min, draw.Src)
 		def := &font.Drawer{
 			Src:  image.Black,
 			Face: face,
-			Dot:  fixed.P(5, face.Metrics().Height.Ceil()),
+			Dot:  fixed.P(0, face.Metrics().Height.Ceil()),
 		}
 		def.Dst = image.NewRGBA(newR)
 		def.DrawString(words)
@@ -53,6 +51,8 @@ func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
 			if len(defs.Def) == 0 {
 				fmt.Println("definition unavailable")
 				continue
+			} else {
+				fmt.Println(defs)
 			}
 			env.Draw() <- displayDefs(defs.Def[0].Definition, fontFaces["bold"], defCorner)
 			fmt.Println(lookup)
