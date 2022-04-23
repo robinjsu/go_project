@@ -7,7 +7,6 @@ import (
 
 	"github.com/faiface/gui"
 	"golang.org/x/image/font"
-	"golang.org/x/image/math/fixed"
 )
 
 const (
@@ -22,25 +21,27 @@ func getWord(s string) (WordDef, error) {
 	return definitions, nil
 }
 
-func displayDefs(words string, face font.Face, bounds image.Rectangle) func(draw.Image) image.Rectangle {
+func drawInsetRect(r image.Rectangle, margin int) image.Rectangle {
+	x0 := defCorner.Min.X + MARGIN
+	y0 := defCorner.Min.Y + MARGIN
+	sz := defCorner.Size().Sub(image.Pt(MARGIN, MARGIN))
+
+	return image.Rect(x0, y0, x0+sz.X, y0+sz.Y)
+}
+
+func displayDefs(words string, face font.Face) func(draw.Image) image.Rectangle {
 	display := func(drw draw.Image) image.Rectangle {
-		newR := image.Rect(bounds.Min.X+MARGIN, bounds.Min.Y+MARGIN, bounds.Max.X-MARGIN, bounds.Max.Y-MARGIN)
+		newR := drawInsetRect(defCorner, MARGIN)
 		draw.Draw(drw, newR, image.White, newR.Min, draw.Src)
-		def := &font.Drawer{
-			Src:  image.Black,
-			Face: face,
-			Dot:  fixed.P(0, face.Metrics().Height.Ceil()),
-		}
-		def.Dst = image.NewRGBA(newR)
-		def.DrawString(words)
+		textImg, _ := drawText(words, face)
+		newBounds := textImg.Bounds().Add(image.Pt(defCorner.Min.X, defCorner.Min.Y))
+		draw.Draw(drw, newBounds, textImg, textImg.Bounds().Min, draw.Over)
 		return newR
 	}
 	return display
 }
 
 func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
-	// var defs WordDef
-	defCorner := image.Rect(900, 300, 1200, 1200)
 	for {
 		select {
 		case lookup := <-word:
@@ -54,8 +55,7 @@ func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
 			} else {
 				fmt.Println(defs)
 			}
-			env.Draw() <- displayDefs(defs.Def[0].Definition, fontFaces["bold"], defCorner)
-			fmt.Println(lookup)
+			env.Draw() <- displayDefs(defs.Def[0].Definition, fontFaces["regular"])
 		case _, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())

@@ -56,8 +56,6 @@ func highlightLine(face font.Face, cont *Content, p image.Point, words chan<- st
 }
 
 func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string) {
-	textBounds := image.Rect(0, 0, 900, 900)
-	// fontFaces := loadFonts(FONT_REG, FONT_BOLD)
 	cont := NewContent()
 	_, err := cont.parseText(textFile, fontFaces["regular"])
 	if err != nil {

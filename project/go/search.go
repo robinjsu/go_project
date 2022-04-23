@@ -70,9 +70,9 @@ func displayWords(wordList []string, face font.Face) []imageObj {
 	return images
 }
 
-func drawSearchBar(images []imageObj, bounds image.Rectangle) func(draw.Image) image.Rectangle {
+func drawSearchBar(images []imageObj, bounds *image.Rectangle) func(draw.Image) image.Rectangle {
 	searchBar := func(drw draw.Image) image.Rectangle {
-		newR := bounds
+		newR := *bounds
 		draw.Draw(drw, newR, &image.Uniform{TEAL}, image.ZP, draw.Over)
 		for _, obj := range images {
 			draw.Draw(drw, obj.placement, obj.img, image.ZP, draw.Over)
@@ -112,7 +112,6 @@ func splitWds(lookup string) []string {
 }
 
 func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, define chan<- string) {
-	wordCorner := image.Rect(900, 0, 1200, 300)
 	var list []string
 	var display []imageObj
 	for {
@@ -120,7 +119,7 @@ func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, de
 		case lookup := <-words:
 			list = splitWds(lookup)
 			display = displayWords(list, fontFaces["regular"])
-			env.Draw() <- drawSearchBar(display, wordCorner)
+			env.Draw() <- drawSearchBar(display, &wordCorner)
 		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
@@ -129,7 +128,7 @@ func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, de
 			switch e := e.(type) {
 			case win.MoDown:
 				if image.Pt(e.X, e.Y).In(wordCorner) {
-					env.Draw() <- drawSearchBar(display, wordCorner)
+					env.Draw() <- drawSearchBar(display, &wordCorner)
 					highlight, target := highlightWord(display, image.Pt(e.X, e.Y), wordCorner, define)
 					define <- target
 					env.Draw() <- highlight
