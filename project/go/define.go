@@ -9,33 +9,53 @@ import (
 	"golang.org/x/image/font"
 )
 
+// TODO: load different size fonts
+
 const (
-	MIN_Y = 300
+	DEF_MIN_X = 900
+	DEF_MIN_Y = 425
 )
 
-func getWord(s string) (WordDef, error) {
+func getWord(s string) (Word, error) {
 	definitions, err := getDef(s)
 	if err != nil {
-		return WordDef{}, err
+		return Word{}, err
 	}
 	return definitions, nil
 }
 
-func drawInsetRect(r image.Rectangle, margin int) image.Rectangle {
-	x0 := defCorner.Min.X + MARGIN
-	y0 := defCorner.Min.Y + MARGIN
-	sz := defCorner.Size().Sub(image.Pt(MARGIN, MARGIN))
-
-	return image.Rect(x0, y0, x0+sz.X, y0+sz.Y)
+func displayDefs(word Word, face font.Face) [][]imageObj {
+	y := face.Metrics().Height.Ceil() * 2
+	var definitions [][]imageObj
+	for _, d := range word.Def {
+		var defImages []imageObj
+		for j, txt := range d.Wrapped {
+			img, format := drawText(txt, face)
+			x1 := img.Bounds().Dx()
+			lineR := image.Rect(DEF_MIN_X, DEF_MIN_Y+(y*j), x1+DEF_MIN_X, DEF_MIN_Y+(y*(j+1)))
+			defImages = append(defImages, imageObj{text: format, img: img, placement: lineR})
+		}
+		definitions = append(definitions, defImages)
+	}
+	return definitions
 }
 
-func displayDefs(words string, face font.Face) func(draw.Image) image.Rectangle {
+func drawDefs(word string, face font.Face, images [][]imageObj) func(draw.Image) image.Rectangle {
+	newR := makeInsetRect(defCorner, MARGIN)
+	headerImg, _ := drawText(word, face)
+	headerR := makeHeaderR(newR, headerImg, MARGIN)
+	y := 0
 	display := func(drw draw.Image) image.Rectangle {
-		newR := drawInsetRect(defCorner, MARGIN)
 		draw.Draw(drw, newR, image.White, newR.Min, draw.Src)
-		textImg, _ := drawText(words, face)
-		newBounds := textImg.Bounds().Add(image.Pt(defCorner.Min.X, defCorner.Min.Y))
-		draw.Draw(drw, newBounds, textImg, textImg.Bounds().Min, draw.Over)
+		draw.Draw(drw, headerR, headerImg, image.Pt(0, 0), draw.Over)
+		for _, def := range images {
+			for j, line := range def {
+				newPlacement := line.placement.Add(image.Pt(0, y))
+				draw.Draw(drw, newPlacement, line.img, image.Pt(0, y), draw.Over)
+				y = line.text.bounds.Max.Y.Ceil() * (j + 1)
+			}
+		}
+
 		return newR
 	}
 	return display
@@ -50,12 +70,13 @@ func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
 				fmt.Println(err)
 			}
 			if len(defs.Def) == 0 {
-				fmt.Println("definition unavailable")
-				continue
+				// fmt.Println("definition unavailable")
+				defs = Word{Word: "definition unavailable"}
 			} else {
-				fmt.Println(defs)
+				defs.formatDefs()
 			}
-			env.Draw() <- displayDefs(defs.Def[0].Definition, fontFaces["regular"])
+			images := displayDefs(defs, fontFaces["regular"])
+			env.Draw() <- drawDefs(defs.Word, fontFaces["regular"], images)
 		case _, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())

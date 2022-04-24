@@ -15,7 +15,7 @@ func run() {
 
 	//  multiplex main window env
 	mux, mainEnv := gui.NewMux(window)
-	fontFaces := loadFonts(FONT_REG, FONT_BOLD)
+	fontFaces := loadFonts(FONTSZ, FONT_REG, FONT_BOLD)
 
 	// create channels for comm between goroutines
 	words := make(chan string)

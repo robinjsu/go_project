@@ -31,3 +31,20 @@ func drawText(s string, face font.Face) (image.Image, Formatted) {
 	text.DrawString(s)
 	return text.Dst, Formatted{txt: s, span: txtAdv, bounds: txtBnds}
 }
+
+func makeInsetRect(r image.Rectangle, margin int) image.Rectangle {
+	x0 := defCorner.Min.X + margin
+	y0 := defCorner.Min.Y + margin
+	sz := defCorner.Size().Sub(image.Pt(margin, margin))
+
+	return image.Rect(x0, y0, x0+sz.X, y0+sz.Y)
+}
+
+func makeHeaderR(r image.Rectangle, header image.Image, margin int) image.Rectangle {
+	x0 := header.Bounds().Min.X + margin
+	y0 := header.Bounds().Min.Y + margin
+	x1 := x0 + header.Bounds().Dx()
+	y1 := y0 + header.Bounds().Dy()
+
+	return image.Rect(x0, y0, x1, y1)
+}

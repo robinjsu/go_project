@@ -11,11 +11,6 @@ import (
 	"golang.org/x/image/font"
 )
 
-// Content contains a buffer with text content; each line of text corresponds to text up until the next newline character is found
-// TODO: changing approach to parsing - first take in each paragraph, then have separate function to split each p into smaller parts (maybe even as words) in order to
-// figure out a way to track location of each word and how it should be tracked so that each word can be clicked on to search
-// TODO: take paragraph breaks into account, and split at newline if exists within the lineMaxW
-
 func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle {
 	load := func(drw draw.Image) image.Rectangle {
 		// coordinates refer to the destination image's coordinate space

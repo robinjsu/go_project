@@ -6,15 +6,15 @@ import (
 )
 
 const (
-	MAXWIDTH  = 1200
-	TEXTWIDTH = 900
-	HEIGHT    = 900
-	FONTSZ    = 16
-	FONT_REG  = "../../fonts/Karma/Karma-Regular.ttf"
-	FONT_BOLD = "../../fonts/Karma/Karma-Bold.ttf"
-	FONT_H    = 20
-	NEWLINE   = byte('\n')
-	maxLineW  = 125
+	MAXWIDTH     = 1200
+	TEXTWIDTH    = 900
+	HEIGHT       = 900
+	FONTSZ       = 16
+	FONT_REG     = "../../fonts/Karma/Karma-Regular.ttf"
+	FONT_BOLD    = "../../fonts/Karma/Karma-Bold.ttf"
+	FONT_H       = 20
+	NEWLINE      = byte('\n')
+	MAXLINEWIDTH = 125
 )
 
 var (
