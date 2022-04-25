@@ -30,8 +30,9 @@ type Formatted struct {
 	bounds fixed.Rectangle26_6
 }
 type Content struct {
-	fullText []byte
-	format   []Formatted
+	fullText  []byte
+	wrapped   []string
+	formatted []Formatted
 }
 
 func NewContent() *Content {
@@ -46,7 +47,7 @@ func (c *Content) parseText(filename string, face font.Face) (int, error) {
 		return -1, err
 	}
 	c.fullText = content
-	_, c.format = formatLines(c.fullText, MAXLINEWIDTH)
+	c.wrapped, c.formatted = formatLines(c.fullText, MAXLINE_TEXT)
 
 	return 0, nil
 }
@@ -170,11 +171,10 @@ func loadFonts(fontSize float64, fonts ...string) map[string]font.Face {
 	return fontFaces
 }
 
-func (word *Word) formatDefs() Word {
-	splitIdx := 40
+func (word *Word) formatDefs(maxLineW int) Word {
 	for i, d := range word.Def {
 		s := fmt.Sprintf(" - (%s) %s", d.PartOfSpeech, d.Definition)
-		fmtDefs := wrapDef(s, splitIdx)
+		fmtDefs := wrapDef(s, maxLineW)
 		word.Def[i].Wrapped = fmtDefs
 	}
 	return *word

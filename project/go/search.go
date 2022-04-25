@@ -9,30 +9,12 @@ import (
 	"golang.org/x/image/font"
 )
 
-const (
-	MIN_X = 805
-)
-
 // TODO: a bit more string clean-up to do
-func displayWords(wordList []string, face font.Face) []imageObj {
-	var images []imageObj
-	// TODO: standardize height
-	y := face.Metrics().Height.Ceil() * 2
-
-	for i, w := range wordList {
-		img, format := drawText(w, face)
-		x1 := img.Bounds().Dx()
-		// TODO: standardize locations
-		fontR := image.Rect(MIN_X, (y * i), (x1 + MIN_X), (y * (i + 1)))
-		images = append(images, imageObj{text: format, img: img, placement: fontR})
-	}
-	return images
-}
 
 func drawSearchBar(images []imageObj, bounds *image.Rectangle) func(draw.Image) image.Rectangle {
 	searchBar := func(drw draw.Image) image.Rectangle {
 		// TODO: standardize locations
-		newR := image.Rect(bounds.Min.X+MARGIN, bounds.Min.Y+MARGIN, MAXWIDTH-MARGIN, 300-MARGIN)
+		newR := makeInsetRect(*bounds, MARGIN)
 		draw.Draw(drw, newR, &image.Uniform{TEAL}, image.Pt(0, 0), draw.Over)
 		for _, obj := range images {
 			draw.Draw(drw, obj.placement, obj.img, image.Pt(0, 0), draw.Over)
@@ -66,7 +48,7 @@ func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, de
 		select {
 		case lookup := <-words:
 			list = splitStr(lookup)
-			display = displayWords(list, fontFaces["regular"])
+			display = formatTextImages(list, fontFaces["regular"], MIN_X_SEARCH)
 			env.Draw() <- drawSearchBar(display, &wordCorner)
 		case e, ok := <-env.Events():
 			if !ok {

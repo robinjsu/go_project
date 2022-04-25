@@ -32,15 +32,30 @@ func drawText(s string, face font.Face) (image.Image, Formatted) {
 	return text.Dst, Formatted{txt: s, span: txtAdv, bounds: txtBnds}
 }
 
+func formatTextImages(wordList []string, face font.Face, minX int) []imageObj {
+	var images []imageObj
+	// TODO: standardize height
+	y := face.Metrics().Height.Ceil() * 2
+
+	for i, w := range wordList {
+		img, format := drawText(w, face)
+		x1 := img.Bounds().Dx()
+		// TODO: standardize locations
+		fontR := image.Rect(minX, (y * i), (x1 + minX), (y * (i + 1)))
+		images = append(images, imageObj{text: format, img: img, placement: fontR})
+	}
+	return images
+}
+
 func makeInsetRect(r image.Rectangle, margin int) image.Rectangle {
-	x0 := defCorner.Min.X + margin
-	y0 := defCorner.Min.Y + margin
-	sz := defCorner.Size().Sub(image.Pt(margin, margin))
+	x0 := r.Min.X + margin
+	y0 := r.Min.Y + margin
+	sz := r.Size().Sub(image.Pt(margin, margin))
 
 	return image.Rect(x0, y0, x0+sz.X, y0+sz.Y)
 }
 
-func makeHeaderR(r image.Rectangle, header image.Image, margin int) image.Rectangle {
+func makeHeaderLeftR(r image.Rectangle, header image.Image, margin int) image.Rectangle {
 	x0 := r.Bounds().Min.X + margin
 	y0 := r.Bounds().Min.Y + margin
 	x1 := x0 + header.Bounds().Max.X

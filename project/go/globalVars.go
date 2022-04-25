@@ -13,7 +13,11 @@ const (
 	FONT_REG     = "../../fonts/Karma/Karma-Regular.ttf"
 	FONT_BOLD    = "../../fonts/Karma/Karma-Bold.ttf"
 	NEWLINE      = byte('\n')
-	MAXLINEWIDTH = 105
+	MAXLINE_TEXT = 105
+	MAXLINE_DEF  = 40
+	MIN_X_SEARCH = 805
+	MAX_Y_SEARCH = 1200
+	MIN_X_TEXT   = 0
 )
 
 var (

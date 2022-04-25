@@ -13,7 +13,7 @@ import (
 
 const (
 	DEF_MIN_X = 800
-	DEF_MIN_Y = 425
+	DEF_MIN_Y = 300
 )
 
 func getWord(s string) (Word, error) {
@@ -48,7 +48,7 @@ func displayDefs(word Word, face font.Face) [][]imageObj {
 func drawDefs(word string, faces map[string]font.Face, images [][]imageObj) func(draw.Image) image.Rectangle {
 	newR := makeInsetRect(defCorner, MARGIN)
 	headerImg, _ := drawText(word, faces["bold"])
-	headerR := makeHeaderR(newR, headerImg, MARGIN)
+	headerR := makeHeaderLeftR(newR, headerImg, MARGIN)
 	y := 0
 	display := func(drw draw.Image) image.Rectangle {
 		draw.Draw(drw, newR, image.White, newR.Min, draw.Src)
@@ -76,10 +76,9 @@ func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
 				fmt.Println(err)
 			}
 			if len(defs.Def) == 0 {
-				// fmt.Println("definition unavailable")
 				defs = Word{Word: "definition unavailable"}
 			} else {
-				defs.formatDefs()
+				defs.formatDefs(MAXLINE_DEF)
 			}
 			images := displayDefs(defs, fontFaces["regular"])
 			env.Draw() <- drawDefs(defs.Word, fontFaces, images)
