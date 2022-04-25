@@ -27,7 +27,7 @@ func getWord(s string) (Word, error) {
 func displayDefs(word Word, face font.Face) [][]imageObj {
 	ht := face.Metrics().Height.Floor()
 	// TODO: standardize points
-	lineR := image.Rect(DEF_MIN_X, DEF_MIN_Y, DEF_MIN_X, DEF_MIN_Y)
+	var lineR image.Rectangle
 	var definitions [][]imageObj
 	y0 := DEF_MIN_Y
 	for _, d := range word.Def {
@@ -45,8 +45,8 @@ func displayDefs(word Word, face font.Face) [][]imageObj {
 	return definitions
 }
 
-func drawDefs(word string, faces map[string]font.Face, images [][]imageObj) func(draw.Image) image.Rectangle {
-	newR := makeInsetRect(defCorner, MARGIN)
+func drawDefs(word string, faces map[string]font.Face, images [][]imageObj, bounds *image.Rectangle) func(draw.Image) image.Rectangle {
+	newR := makeInsetR(*bounds, MARGIN)
 	headerImg, _ := drawText(word, faces["bold"])
 	headerR := makeHeaderLeftR(newR, headerImg, MARGIN)
 	y := 0
@@ -81,7 +81,7 @@ func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
 				defs.formatDefs(MAXLINE_DEF)
 			}
 			images := displayDefs(defs, fontFaces["regular"])
-			env.Draw() <- drawDefs(defs.Word, fontFaces, images)
+			env.Draw() <- drawDefs(defs.Word, fontFaces, images, &defCorner)
 		case _, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())

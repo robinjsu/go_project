@@ -47,12 +47,12 @@ func formatTextImages(wordList []string, face font.Face, minX int) []imageObj {
 	return images
 }
 
-func makeInsetRect(r image.Rectangle, margin int) image.Rectangle {
+func makeInsetR(r image.Rectangle, margin int) image.Rectangle {
 	x0 := r.Min.X + margin
 	y0 := r.Min.Y + margin
 	sz := r.Size().Sub(image.Pt(margin, margin))
 
-	return image.Rect(x0, y0, x0+sz.X, y0+sz.Y)
+	return image.Rect(x0, y0, r.Min.X+sz.X, r.Min.Y+sz.Y)
 }
 
 func makeHeaderLeftR(r image.Rectangle, header image.Image, margin int) image.Rectangle {

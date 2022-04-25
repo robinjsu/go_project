@@ -10,11 +10,11 @@ import (
 	"golang.org/x/image/font"
 )
 
-func drawTextLines(images []imageObj, face font.Face) func(drw draw.Image) image.Rectangle {
+func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) func(drw draw.Image) image.Rectangle {
 	load := func(drw draw.Image) image.Rectangle {
 		// coordinates refer to the destination image's coordinate space
 		// TODO: standardize points
-		page := image.Rect(0, 0, 800, 900)
+		page := *bounds
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
 		for _, obj := range images {
 			draw.Draw(drw, obj.placement, obj.img, image.Pt(0, 0), draw.Over)
@@ -51,7 +51,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 		// panic("panic! text file not properly loaded")
 	}
 	textLines := formatTextImages(cont.wrapped, fontFaces["regular"], MIN_X_TEXT)
-	loadText := drawTextLines(textLines, fontFaces["regular"])
+	loadText := drawTextLines(textLines, fontFaces["regular"], &textBounds)
 	env.Draw() <- loadText
 
 	for {
@@ -66,7 +66,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 			case win.MoUp:
 				p := image.Pt(e.X, e.Y)
 				if p.In(textBounds) {
-					env.Draw() <- drawTextLines(textLines, fontFaces["regular"])
+					env.Draw() <- drawTextLines(textLines, fontFaces["regular"], &textBounds)
 					load := highlightLine(fontFaces["bold"], textLines, image.Pt(e.X, e.Y), words)
 					env.Draw() <- load
 				}

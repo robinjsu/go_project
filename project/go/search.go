@@ -14,7 +14,7 @@ import (
 func drawSearchBar(images []imageObj, bounds *image.Rectangle) func(draw.Image) image.Rectangle {
 	searchBar := func(drw draw.Image) image.Rectangle {
 		// TODO: standardize locations
-		newR := makeInsetRect(*bounds, MARGIN)
+		newR := makeInsetR(*bounds, MARGIN)
 		draw.Draw(drw, newR, &image.Uniform{TEAL}, image.Pt(0, 0), draw.Over)
 		for _, obj := range images {
 			draw.Draw(drw, obj.placement, obj.img, image.Pt(0, 0), draw.Over)
