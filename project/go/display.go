@@ -10,9 +10,9 @@ import (
 func Display(env gui.Env) {
 
 	loadPage := func(drw draw.Image) image.Rectangle {
-		mainPage := image.Rect(0, 0, MAXWIDTH, HEIGHT)
-		textBar := image.Rect(0, 0, .75*MAXWIDTH, HEIGHT)
-		sideBar := image.Rect(0.75*MAXWIDTH, 0, MAXWIDTH, HEIGHT)
+		mainPage := image.Rect(0, 0, MAXWIDTH, MAXHEIGHT)
+		textBar := image.Rect(0, 0, TEXTWIDTH, MAXHEIGHT)
+		sideBar := image.Rect(750, 0, MAXWIDTH, MAXHEIGHT)
 		draw.Draw(drw, mainPage, image.White, image.ZP, draw.Src)
 		draw.Draw(drw, textBar, image.White, textBar.Min, draw.Src)
 		draw.Draw(drw, sideBar, image.NewUniform(DEEP_BLUE), sideBar.Min, draw.Src)

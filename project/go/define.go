@@ -12,7 +12,7 @@ import (
 // TODO: load different size fonts
 
 const (
-	DEF_MIN_X = 900
+	DEF_MIN_X = 800
 	DEF_MIN_Y = 425
 )
 
@@ -25,14 +25,18 @@ func getWord(s string) (Word, error) {
 }
 
 func displayDefs(word Word, face font.Face) [][]imageObj {
-	y := face.Metrics().Height.Ceil() * 2
+	ht := face.Metrics().Height.Floor()
+	lineR := image.Rect(DEF_MIN_X, DEF_MIN_Y, DEF_MIN_X, DEF_MIN_Y)
 	var definitions [][]imageObj
+	y0 := DEF_MIN_Y
 	for _, d := range word.Def {
 		var defImages []imageObj
-		for j, txt := range d.Wrapped {
+		for _, txt := range d.Wrapped {
 			img, format := drawText(txt, face)
 			x1 := img.Bounds().Dx()
-			lineR := image.Rect(DEF_MIN_X, DEF_MIN_Y+(y*j), x1+DEF_MIN_X, DEF_MIN_Y+(y*(j+1)))
+			y0 += ht
+			lineR = image.Rect(DEF_MIN_X+MARGIN, y0, DEF_MIN_X+MARGIN+x1, y0+ht)
+			fmt.Println(lineR)
 			defImages = append(defImages, imageObj{text: format, img: img, placement: lineR})
 		}
 		definitions = append(definitions, defImages)
@@ -40,19 +44,19 @@ func displayDefs(word Word, face font.Face) [][]imageObj {
 	return definitions
 }
 
-func drawDefs(word string, face font.Face, images [][]imageObj) func(draw.Image) image.Rectangle {
+func drawDefs(word string, faces map[string]font.Face, images [][]imageObj) func(draw.Image) image.Rectangle {
 	newR := makeInsetRect(defCorner, MARGIN)
-	headerImg, _ := drawText(word, face)
+	headerImg, _ := drawText(word, faces["bold"])
 	headerR := makeHeaderR(newR, headerImg, MARGIN)
 	y := 0
 	display := func(drw draw.Image) image.Rectangle {
 		draw.Draw(drw, newR, image.White, newR.Min, draw.Src)
-		draw.Draw(drw, headerR, headerImg, image.Pt(0, 0), draw.Over)
+		draw.Draw(drw, headerR, headerImg, image.ZP, draw.Over)
 		for _, def := range images {
-			for j, line := range def {
-				newPlacement := line.placement.Add(image.Pt(0, y))
-				draw.Draw(drw, newPlacement, line.img, image.Pt(0, y), draw.Over)
-				y = line.text.bounds.Max.Y.Ceil() * (j + 1)
+			for _, line := range def {
+				newPlacement := line.placement.Add(image.Pt(MARGIN*2, y))
+				draw.Draw(drw, newPlacement, line.img, line.img.Bounds().Min, draw.Over)
+				y += line.text.bounds.Max.Y.Ceil()
 			}
 		}
 
@@ -76,7 +80,7 @@ func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
 				defs.formatDefs()
 			}
 			images := displayDefs(defs, fontFaces["regular"])
-			env.Draw() <- drawDefs(defs.Word, fontFaces["regular"], images)
+			env.Draw() <- drawDefs(defs.Word, fontFaces, images)
 		case _, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	MIN_X = 900
+	MIN_X = 800
 )
 
 // TODO: a bit more string clean-up to do

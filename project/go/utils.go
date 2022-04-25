@@ -41,10 +41,10 @@ func makeInsetRect(r image.Rectangle, margin int) image.Rectangle {
 }
 
 func makeHeaderR(r image.Rectangle, header image.Image, margin int) image.Rectangle {
-	x0 := header.Bounds().Min.X + margin
-	y0 := header.Bounds().Min.Y + margin
-	x1 := x0 + header.Bounds().Dx()
-	y1 := y0 + header.Bounds().Dy()
+	x0 := r.Bounds().Min.X + margin
+	y0 := r.Bounds().Min.Y + margin
+	x1 := x0 + header.Bounds().Max.X
+	y1 := y0 + header.Bounds().Max.Y
 
 	return image.Rect(x0, y0, x1, y1)
 }

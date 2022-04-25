@@ -8,7 +8,7 @@ import (
 
 func run() {
 	// create GUI window (not resizable for now)
-	window, err := win.New(win.Title("GoTextAide"), win.Size(MAXWIDTH, HEIGHT))
+	window, err := win.New(win.Title("GoTextAide"), win.Size(MAXWIDTH, MAXHEIGHT))
 	if err != nil {
 		panic(err)
 	}
