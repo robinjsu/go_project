@@ -20,12 +20,14 @@ func run() {
 	// create channels for comm between goroutines
 	words := make(chan string)
 	define := make(chan string)
+	save := make(chan Word)
 
 	// each component is muxed from main, occupying its own thread
 	go Display(mux.MakeEnv())
 	go Text(mux.MakeEnv(), "./age_of_innocence.txt", fontFaces, words)
 	go Search(mux.MakeEnv(), fontFaces, words, define)
-	go Define(mux.MakeEnv(), fontFaces, define)
+	go Define(mux.MakeEnv(), fontFaces, define, save)
+	go WordList(mux.MakeEnv(), save, "Edith Wharton")
 
 	// main application loop
 	for e := range mainEnv.Events() {

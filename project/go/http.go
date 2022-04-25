@@ -13,6 +13,19 @@ type Word struct {
 	Def  []Definition `json:"definitions"`
 }
 
+func (word *Word) formatDefs(maxLineW int) Word {
+	for i, d := range word.Def {
+		s := fmt.Sprintf(" - (%s) %s", d.PartOfSpeech, d.Definition)
+		fmtDefs := wrapDef(s, maxLineW)
+		word.Def[i].Wrapped = fmtDefs
+	}
+	return *word
+}
+
+func (word *Word) String() string {
+	return fmt.Sprintf("[%s] %s\n", word.Word, word.Def)
+}
+
 type Definition struct {
 	PartOfSpeech string `json:"partOfSpeech"`
 	Definition   string `json:"definition"`

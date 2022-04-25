@@ -9,13 +9,6 @@ import (
 	"golang.org/x/image/font"
 )
 
-// TODO: load different size fonts
-
-const (
-	DEF_MIN_X = 800
-	DEF_MIN_Y = 300
-)
-
 func getWord(s string) (Word, error) {
 	definitions, err := getDef(s)
 	if err != nil {
@@ -29,7 +22,7 @@ func displayDefs(word Word, face font.Face) [][]imageObj {
 	// TODO: standardize points
 	var lineR image.Rectangle
 	var definitions [][]imageObj
-	y0 := DEF_MIN_Y
+	y0 := MIN_Y_DEF
 	for _, d := range word.Def {
 		var defImages []imageObj
 		for _, txt := range d.Wrapped {
@@ -37,7 +30,7 @@ func displayDefs(word Word, face font.Face) [][]imageObj {
 			x1 := img.Bounds().Dx()
 			y0 += ht
 			// TODO: standardize points
-			lineR = image.Rect(DEF_MIN_X+MARGIN, y0, DEF_MIN_X+MARGIN+x1, y0+ht)
+			lineR = image.Rect(MIN_X_DEF+MARGIN, y0, MIN_X_DEF+MARGIN+x1, y0+ht)
 			defImages = append(defImages, imageObj{text: format, img: img, placement: lineR})
 		}
 		definitions = append(definitions, defImages)
@@ -67,7 +60,7 @@ func drawDefs(word string, faces map[string]font.Face, images [][]imageObj, boun
 	return display
 }
 
-func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
+func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string, save chan<- Word) {
 	for {
 		select {
 		case lookup := <-word:
@@ -79,6 +72,7 @@ func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string) {
 				defs = Word{Word: "definition unavailable"}
 			} else {
 				defs.formatDefs(MAXLINE_DEF)
+				save <- defs
 			}
 			images := displayDefs(defs, fontFaces["regular"])
 			env.Draw() <- drawDefs(defs.Word, fontFaces, images, &defCorner)

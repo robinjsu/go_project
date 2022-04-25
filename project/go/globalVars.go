@@ -8,16 +8,18 @@ import (
 const (
 	MAXWIDTH     = 1200
 	MAXHEIGHT    = 900
-	TEXTWIDTH    = 800
 	FONTSZ       = 16
 	FONT_REG     = "../../fonts/Karma/Karma-Regular.ttf"
 	FONT_BOLD    = "../../fonts/Karma/Karma-Bold.ttf"
 	NEWLINE      = byte('\n')
 	MAXLINE_TEXT = 125
-	MAXLINE_DEF  = 40
+	MAXLINE_DEF  = 50
 	MIN_X_SEARCH = 805
 	MAX_Y_SEARCH = 1200
 	MIN_X_TEXT   = 0
+	MAX_X_TEXT   = 800
+	MIN_X_DEF    = 800
+	MIN_Y_DEF    = 325
 )
 
 var (
