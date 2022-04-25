@@ -14,7 +14,8 @@ import (
 func loadTxt(face font.Face, cont *Content) func(drw draw.Image) image.Rectangle {
 	load := func(drw draw.Image) image.Rectangle {
 		// coordinates refer to the destination image's coordinate space
-		page := image.Rect(0, 0, 900, 900)
+		// TODO: standardize points
+		page := image.Rect(0, 0, 800, 900)
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
 		for i, lns := range cont.format {
 			text := &font.Drawer{
@@ -39,6 +40,7 @@ func highlightLine(face font.Face, cont *Content, p image.Point, words chan<- st
 			rct := ln.bounds
 			if p.Y >= (rct.Min.Y).Floor() && p.Y <= (rct.Max.Y).Ceil() && p.X <= TEXTWIDTH {
 				txt = ln.txt
+				// TODO: standardize points
 				line = image.Rect((rct.Min.X).Floor(), (rct.Min.Y).Floor(), (rct.Max.X).Floor(), (rct.Max.Y).Floor())
 				draw.Draw(drw, line, &image.Uniform{HIGHLIGHT_GRAY}, image.ZP, draw.Over)
 			}

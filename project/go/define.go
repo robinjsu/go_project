@@ -26,6 +26,7 @@ func getWord(s string) (Word, error) {
 
 func displayDefs(word Word, face font.Face) [][]imageObj {
 	ht := face.Metrics().Height.Floor()
+	// TODO: standardize points
 	lineR := image.Rect(DEF_MIN_X, DEF_MIN_Y, DEF_MIN_X, DEF_MIN_Y)
 	var definitions [][]imageObj
 	y0 := DEF_MIN_Y
@@ -35,8 +36,8 @@ func displayDefs(word Word, face font.Face) [][]imageObj {
 			img, format := drawText(txt, face)
 			x1 := img.Bounds().Dx()
 			y0 += ht
+			// TODO: standardize points
 			lineR = image.Rect(DEF_MIN_X+MARGIN, y0, DEF_MIN_X+MARGIN+x1, y0+ht)
-			fmt.Println(lineR)
 			defImages = append(defImages, imageObj{text: format, img: img, placement: lineR})
 		}
 		definitions = append(definitions, defImages)
@@ -54,6 +55,7 @@ func drawDefs(word string, faces map[string]font.Face, images [][]imageObj) func
 		draw.Draw(drw, headerR, headerImg, image.ZP, draw.Over)
 		for _, def := range images {
 			for _, line := range def {
+				// TODO: standardize points
 				newPlacement := line.placement.Add(image.Pt(MARGIN*2, y))
 				draw.Draw(drw, newPlacement, line.img, line.img.Bounds().Min, draw.Over)
 				y += line.text.bounds.Max.Y.Ceil()

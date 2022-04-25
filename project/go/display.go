@@ -10,6 +10,8 @@ import (
 func Display(env gui.Env) {
 
 	loadPage := func(drw draw.Image) image.Rectangle {
+		// TODO: standardize points
+		// TODO: refactor drawing funcs!
 		mainPage := image.Rect(0, 0, MAXWIDTH, MAXHEIGHT)
 		textBar := image.Rect(0, 0, TEXTWIDTH, MAXHEIGHT)
 		sideBar := image.Rect(750, 0, MAXWIDTH, MAXHEIGHT)
