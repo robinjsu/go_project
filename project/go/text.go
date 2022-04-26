@@ -50,7 +50,8 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 		error.Error(err)
 		// panic("panic! text file not properly loaded")
 	}
-	textLines := formatTextImages(cont.wrapped, fontFaces["regular"], MIN_X_TEXT)
+	pages := makePages(cont.wrapped, LINES_PER_PAGE)
+	textLines := formatTextImages(pages[1], fontFaces["regular"], MIN_X_TEXT)
 	loadText := drawTextLines(textLines, fontFaces["regular"], &textBounds)
 	env.Draw() <- loadText
 

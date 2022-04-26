@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Word struct {
@@ -23,7 +24,14 @@ func (word *Word) formatDefs(maxLineW int) Word {
 }
 
 func (word *Word) String() string {
-	return fmt.Sprintf("[%s] %s\n", word.Word, word.Def)
+	var wl []string
+	for _, d := range word.Def {
+		f := fmt.Sprintf("(%s) %s", d.PartOfSpeech, d.Definition)
+		wl = append(wl, f)
+	}
+	defs := strings.Join(wl, "; ")
+	w := fmt.Sprintf("%s: %s", word.Word, defs)
+	return w
 }
 
 type Definition struct {

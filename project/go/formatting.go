@@ -187,3 +187,17 @@ func isCommon(s string) bool {
 	}
 	return false
 }
+
+func makePages(content []string, linesPerPage int) [][]string {
+	var pages [][]string
+	contentCopy := content
+	for len(contentCopy) > 0 {
+		if len(contentCopy) < linesPerPage {
+			pages = append(pages, contentCopy)
+			break
+		}
+		pages = append(pages, contentCopy[:linesPerPage])
+		contentCopy = contentCopy[linesPerPage:]
+	}
+	return pages
+}
