@@ -20,19 +20,13 @@ func getWord(s string) (Word, error) {
 func displayDefs(word Word, face font.Face) [][]imageObj {
 	ht := face.Metrics().Height.Floor()
 	// TODO: standardize points
-	var lineR image.Rectangle
+	// var lineR image.Rectangle
 	var definitions [][]imageObj
 	y0 := MIN_Y_DEF
 	for _, d := range word.Def {
 		var defImages []imageObj
-		for _, txt := range d.Wrapped {
-			img, format := drawText(txt, face)
-			x1 := img.Bounds().Dx()
-			y0 += ht
-			// TODO: standardize points
-			lineR = image.Rect(MIN_X_DEF+MARGIN, y0, MIN_X_DEF+MARGIN+x1, y0+ht)
-			defImages = append(defImages, imageObj{text: format, img: img, placement: lineR})
-		}
+		defImages = formatTextImages(d.Wrapped, y0, MIN_X_DEF, MARGIN*2, ht, face)
+		y0 += len(d.Wrapped) * ht
 		definitions = append(definitions, defImages)
 	}
 	return definitions

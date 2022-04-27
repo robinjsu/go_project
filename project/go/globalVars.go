@@ -7,15 +7,15 @@ import (
 
 const (
 	MAXWIDTH       = 1200
-	MAXHEIGHT      = 900
+	MAXHEIGHT      = 1000
 	FONTSZ         = 16
 	FONT_REG       = "../../fonts/Karma/Karma-Regular.ttf"
 	FONT_BOLD      = "../../fonts/Karma/Karma-Bold.ttf"
 	NEWLINE        = byte('\n')
-	MAXLINE_TEXT   = 125
+	MAXLINE_TEXT   = 100
 	MAXLINE_DEF    = 50
-	MIN_X_SEARCH   = 805
-	MAX_Y_SEARCH   = 1200
+	MIN_X_SEARCH   = 800
+	MAX_X_SEARCH   = 1200
 	MIN_X_TEXT     = 0
 	MAX_X_TEXT     = 800
 	MIN_X_DEF      = 800
@@ -33,4 +33,5 @@ var (
 	defCorner      = image.Rect(800, 300, 1200, 1200)
 	wordCorner     = image.Rect(800, 0, 1200, 300)
 	textBounds     = image.Rect(0, 0, 800, 900)
+	buttonR        = image.Rect(0, 0, 100, 50)
 )

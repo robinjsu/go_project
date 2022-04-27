@@ -167,7 +167,7 @@ func wrapDef(s string, wrapIdx int) []string {
 		return append(lines, s)
 	}
 	for len(s) > 0 {
-		if len(s) < 40 {
+		if len(s) < wrapIdx {
 			lines = append(lines, s)
 			break
 		} else {

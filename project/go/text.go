@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/draw"
 
@@ -17,7 +16,6 @@ var (
 func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) func(drw draw.Image) image.Rectangle {
 	load := func(drw draw.Image) image.Rectangle {
 		// coordinates refer to the destination image's coordinate space
-		// TODO: standardize points
 		page := *bounds
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
 		for _, obj := range images {
@@ -34,7 +32,6 @@ func highlightLine(face font.Face, images []imageObj, p image.Point, words chan<
 		var txt string
 		for _, ln := range images {
 			rct := ln.placement.Bounds()
-			fmt.Println(rct)
 			if p.In(rct) {
 				txt = ln.text.txt
 				draw.Draw(drw, rct, &image.Uniform{HIGHLIGHT_GRAY}, image.ZP, draw.Over)
@@ -48,18 +45,21 @@ func highlightLine(face font.Face, images []imageObj, p image.Point, words chan<
 }
 
 func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string) {
-	cont := NewContent()
+	var cont *Content = NewContent()
+	var textLines []imageObj
+	var pages [][]string
+	var p image.Point
+
 	_, err := cont.parseText(textFile, fontFaces["regular"])
 	if err != nil {
 		error.Error(err)
-		// panic("panic! text file not properly loaded")
 	}
-	pages := makePages(cont.wrapped, LINES_PER_PAGE)
-	// TODO: some sort of concurrency issue happening here? should I use locks...
-	textLines := formatTextImages(pages[currentPage], fontFaces["regular"], MIN_X_TEXT)
+	lineHeight := fontFaces["regular"].Metrics().Height.Ceil() * 2
+	pages = makePages(cont.wrapped, LINES_PER_PAGE)
+	textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
 	loadText := drawTextLines(textLines, fontFaces["regular"], &textBounds)
 	env.Draw() <- loadText
-	var p image.Point
+
 	for {
 		select {
 		case e, ok := <-env.Events():
@@ -69,30 +69,22 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 			}
 			switch e := e.(type) {
 			case win.MoDown:
-				p = image.Pt(e.X, e.Y)
-
 			case win.MoUp:
 				p = image.Pt(e.X, e.Y)
 				if p.In(textBounds) {
-					textLines := formatTextImages(pages[currentPage], fontFaces["regular"], MIN_X_TEXT)
 					env.Draw() <- drawTextLines(textLines, fontFaces["regular"], &textBounds)
-					load := highlightLine(fontFaces["bold"], textLines, image.Pt(e.X, e.Y), words)
-					env.Draw() <- load
+					loadText = highlightLine(fontFaces["bold"], textLines, p, words)
+					env.Draw() <- loadText
 				}
 			case win.KbDown:
 				if e.Key == win.KeyDown && currentPage < len(pages)-1 {
 					currentPage += 1
-					textLines := formatTextImages(pages[currentPage], fontFaces["regular"], MIN_X_TEXT)
-					loadText := drawTextLines(textLines, fontFaces["regular"], &textBounds)
-					env.Draw() <- loadText
-				}
-				if e.Key == win.KeyUp && currentPage > 0 {
+				} else if e.Key == win.KeyUp && currentPage > 0 {
 					currentPage -= 1
-					textLines := formatTextImages(pages[currentPage], fontFaces["regular"], MIN_X_TEXT)
-					loadText := drawTextLines(textLines, fontFaces["regular"], &textBounds)
-					env.Draw() <- loadText
 				}
-			case win.KbUp:
+				textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+				loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
+				env.Draw() <- loadText
 			}
 		}
 	}

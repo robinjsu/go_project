@@ -33,17 +33,18 @@ func drawText(s string, face font.Face) (image.Image, Formatted) {
 	return text.Dst, Formatted{txt: s, span: txtAdv, bounds: txtBnds}
 }
 
-func formatTextImages(wordList []string, face font.Face, minX int) []imageObj {
+func formatTextImages(wordList []string, minY int, minX int, margin int, lineHeight int, face font.Face) []imageObj {
 	var images []imageObj
-	// TODO: standardize height
-	y := face.Metrics().Height.Ceil() * 2
-
-	for i, w := range wordList {
+	x0 := minX + margin
+	y0 := minY + margin
+	y1 := minY + margin + lineHeight
+	for _, w := range wordList {
 		img, format := drawText(w, face)
-		x1 := img.Bounds().Dx()
-		// TODO: standardize locations
-		fontR := image.Rect(minX, (y * i), (x1 + minX), (y * (i + 1)))
+		x1 := x0 + img.Bounds().Dx()
+		fontR := image.Rect(x0, y0, x1, y1)
 		images = append(images, imageObj{text: format, img: img, placement: fontR})
+		y0 += lineHeight
+		y1 += lineHeight
 	}
 	return images
 }
@@ -83,14 +84,3 @@ func drawBtn(text string, face font.Face, r image.Rectangle, loc image.Point) dr
 
 	return txt.Dst
 }
-
-// func drawBtnText(text string, btn draw.Image, r image.Rectangle, face font.Face) image.Image {
-// txt := &font.Drawer{
-// 	Dst:  btn,
-// 	Src:  image.Black,
-// 	Face: face,
-// }
-// bounds, adv := txt.BoundString(text)
-// btn.
-
-// }

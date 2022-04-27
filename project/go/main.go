@@ -27,7 +27,7 @@ func run() {
 	go Text(mux.MakeEnv(), "./alice.txt", fontFaces, words)
 	go Search(mux.MakeEnv(), fontFaces, words, define)
 	go Define(mux.MakeEnv(), fontFaces, define, save)
-	go WordList(mux.MakeEnv(), save, "Edith Wharton")
+	go WordList(mux.MakeEnv(), save, "test")
 
 	// main application loop
 	for e := range mainEnv.Events() {

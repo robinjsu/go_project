@@ -48,7 +48,8 @@ func Search(env gui.Env, fontFaces map[string]font.Face, words <-chan string, de
 		select {
 		case lookup := <-words:
 			list = splitStr(lookup)
-			display = formatTextImages(list, fontFaces["regular"], MIN_X_SEARCH)
+			lineHeight := fontFaces["regular"].Metrics().Height.Floor() * 2
+			display = formatTextImages(list, 0, MIN_X_SEARCH, MARGIN*2, lineHeight, fontFaces["regular"])
 			env.Draw() <- drawSearchBar(display, &wordCorner)
 		case e, ok := <-env.Events():
 			if !ok {
