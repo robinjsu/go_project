@@ -19,13 +19,11 @@ func getWord(s string) (Word, error) {
 
 func displayDefs(word Word, face font.Face) [][]imageObj {
 	ht := face.Metrics().Height.Floor()
-	// TODO: standardize points
-	// var lineR image.Rectangle
 	var definitions [][]imageObj
 	y0 := MIN_Y_DEF
 	for _, d := range word.Def {
 		var defImages []imageObj
-		defImages = formatTextImages(d.Wrapped, y0, MIN_X_DEF, MARGIN*2, ht, face)
+		defImages = formatTextImages(d.Wrapped, y0, MIN_X_DEF, MARGIN*3, ht, face)
 		y0 += len(d.Wrapped) * ht
 		definitions = append(definitions, defImages)
 	}
@@ -42,8 +40,7 @@ func drawDefs(word string, faces map[string]font.Face, images [][]imageObj, boun
 		draw.Draw(drw, headerR, headerImg, image.ZP, draw.Over)
 		for _, def := range images {
 			for _, line := range def {
-				// TODO: standardize points
-				newPlacement := line.placement.Add(image.Pt(MARGIN*2, y))
+				newPlacement := line.placement
 				draw.Draw(drw, newPlacement, line.img, line.img.Bounds().Min, draw.Over)
 				y += line.text.bounds.Max.Y.Ceil()
 			}
