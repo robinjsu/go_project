@@ -71,7 +71,7 @@ class Window():
         while not glfw.window_should_close(self.win):
             # Render here, e.g. using pyOpenGL
             png = pil.open("test_app.png")
-            # img = png.tobytes("raw", "RGBA")
+            
             self.renderWindow(png)
 
             # Swap front and back buffers
@@ -83,21 +83,20 @@ class Window():
         glfw.terminate()
     
     def renderWindow(self, img: pil.Image):
+        # assert type(img) == pil.Image, f'provided image is not pil.Image object type, actual type: {type(img)}'
+        
         if not self.win:
             print("glfw context not created")
             return
-        
-        # drawImg = pil.Image.new("RGBA", (img.width, img.hieght), (255,255,255,255))
         cpy = img.copy()
-        # drawImg = ImageDraw.Draw(cpy, "RGBA")
-
-
+        gl.glRasterPos2d(-1,1)
+        gl.glPixelZoom(1, -1)
         gl.glDrawPixels(img.width, img.height, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, cpy.tobytes())
 
 
 
 def main():
-    options = Options("Hello Python!", 640, 480, False, None, None)
+    options = Options("Hello Python!", 1200, 900, False, None, None)
     win = Window(options)
     win.createOpenGLThread()
 
