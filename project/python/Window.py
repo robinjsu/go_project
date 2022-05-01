@@ -1,13 +1,14 @@
-import errno
-# import pyglfw.pyglfw as glfw
 import glfw
 import OpenGL.GL as gl
 import OpenGL.GLU as glu
-import PIL.Image as pil
-from PIL.ImageDraw import *
+# import PIL.Image as Image
+# from PIL.ImageDraw import ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from typing import NamedTuple, Any, Callable
-from queue import Queue
+import queue as q
+import threading
 
+from Channel import DrawChan, EventChan
 from Event import *
 
 # from Env import Env
@@ -19,27 +20,17 @@ class Options(NamedTuple):
     height: int
     resizable: bool
     maximized: bool
-    
-    # def __init__(self, title="", width=640, height=480, resizable=False, brdlss=False, maximzd=False):
-    #     self.title = title
-    #     self.width = width
-    #     self.height = height
-    #     self.resizable = resizable
-    #     self.borderless = brdlss
-    #     self.maximized = maximzd
-
 
 class Window():
     '''
     Window manages the window context and drawing to the interface
     It also manages the mouse and keyboard events within the context
     '''
-    # eventsOut: Queue
-    # eventsIn: Any
-    draw: Callable[..., pil.Image]
+    events: EventChan
+    draw: DrawChan
 
     win: glfw._GLFWwindow
-    image: pil.Image
+    image: Image.Image
     options: Options
     mouseX: float
     mouseY: float
@@ -48,28 +39,36 @@ class Window():
         self.options = options
         self.mouseX = 0
         self.mouseY = 0
+        self.draw = DrawChan()
+        self.events = EventChan()
+        self.image = Image.new("RGBA", (self.options.width, self.options.height), (255,255,255,255))
         self.initGLFW()
 
 
-    # def Events(self) -> Queue:
-    #     return self.eventsOut
+    def send(self, item: Any) -> None:
+        pass
 
-    # def Draw(self) -> Callable[..., pil.Image]:
-    #     return self.draw
+    def receive(self) -> Any:
+        pass
+
+    def draw(self) -> None:
+        pass
+
+    def setMousePos(self, x, y):
+        self.mouseX = x
+        self.mouseY = y
 
     def setCallbacks(self):
-        glfw.set_key_callback(self.win, kbCallback)
-        glfw.set_mouse_button_callback(self.win, mCallback)
+        mouseEvent, kbEvent = MouseEvent(), KbEvent()
+        mouseEvent.setCallback(self)
+        kbEvent.setCallback(self)
         
-        def cursorCallback(win, x, y):
-            self.mouseX = x
-            self.mouseY = y
-        glfw.set_cursor_pos_callback(self.win, cursorCallback)
 
     def initGLFW(self):
         if not glfw.init():
             return
         
+        # set window properties using window_hint()
         if self.options.resizable == True:
             glfw.window_hint(glfw.RESIZABLE, glfw.TRUE)
         else:
@@ -90,21 +89,24 @@ class Window():
         self.setCallbacks()
         
 
-    def createOpenGLThread(self) -> None:
+    # should be running in the main thread
+    def startOpenGLThread(self) -> None:
         glfw.make_context_current(self.win)
         while not glfw.window_should_close(self.win):
             # Render here, e.g. using pyOpenGL
-            png = pil.open("test_app.png")
-            self.renderWindow(png)
-            # Swap front and back buffers
-            glfw.swap_buffers(self.win)
+            drawFunc = self.draw.receive()
+            print(f'draw event received: {drawFunc}')
+            if drawFunc is not None:
+                self.renderWindow(drawFunc(self.image))
+                 # Swap front and back buffers
+                glfw.swap_buffers(self.win)
             # puts thread to sleep, wakes upon receipt of new event
-            glfw.wait_events()
-            print(self.mouseX, self.mouseY)
+            # TODO: how does this waiting interact with messages coming in on a queue?
+            glfw.wait_events_timeout(0.1)
 
         glfw.terminate()
     
-    def renderWindow(self, img: pil.Image):
+    def renderWindow(self, img: Image.Image) -> None:
         if not self.win:
             print("glfw context not created")
             return
@@ -121,13 +123,32 @@ class Window():
         )
 
         gl.glFlush()
+        return
 
+
+def drawSomething(baseImg: Image.Image) -> Image.Image:
+    im = baseImg.copy()
+    drwCtx = ImageDraw(im)
+    fnt = ImageFont.truetype("../../fonts/Karma/Karma-Regular.ttf", 36)
+    drwCtx.text((150,200), "Hello, Python PIL App!", font=fnt, fill=(0,0,0,255))
+    out = Image.alpha_composite(baseImg, im)
+    return out
+
+def drawCommand(q: DrawChan) -> None:
+    dfunc = drawSomething
+    q.send(dfunc)
 
 
 def main():
     options = Options("Hello Python!", 1200, 900, False, None)
     win = Window(options)
-    win.createOpenGLThread()
+    # simulating drawing event coming from a component
+    dThread = threading.Thread(target=drawCommand, args=(win.draw,))
+    dThread.start()
+    dThread.join()
+    win.startOpenGLThread()
+
+    
 
 if __name__ == '__main__':
     main()
