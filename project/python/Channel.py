@@ -19,12 +19,13 @@ class EventChan:
         '''
         Start separate thread to poll for incoming and outgoing events
         '''
-        eventThread = threading.Thread(target=self.poll_events)
+        eventThread = threading.Thread(target=self.poll_events, name="eventsThread")
         eventThread.start()
     
     def poll_events(self) -> None:
         while not self.close:
             event = self.In.get(block=True)
+            print(f'event received: {event}')
             self.In.task_done()
             self.Out.put(event, block=True)
         while True:
@@ -59,4 +60,4 @@ class DrawChan(Queue):
             print("no draw command issued")
             return None
         self.task_done()
-        return drawCommand
+        return drawCommand  
