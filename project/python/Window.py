@@ -36,14 +36,15 @@ class Window():
     mouseY: float
 
     def __init__(self, options: Options):
+        self.win = glfw._GLFWwindow()
         self.options = options
         self.mouseX = 0
         self.mouseY = 0
         self.draw = DrawChan()
         self.events = EventChan()
         self.image = Image.new("RGBA", (self.options.width, self.options.height), (255,255,255,255))
-        self.initGLFW()
 
+        self.initGLFW()
 
     def send(self, item: Any) -> None:
         pass
@@ -96,13 +97,12 @@ class Window():
             # Render here, e.g. using pyOpenGL
             drawFunc = self.draw.receive()
             print(f'draw event received: {drawFunc}')
-            if drawFunc is not None:
+            if drawFunc != None:
                 self.renderWindow(drawFunc(self.image))
                  # Swap front and back buffers
                 glfw.swap_buffers(self.win)
-            # puts thread to sleep, wakes upon receipt of new event
             # TODO: how does this waiting interact with messages coming in on a queue?
-            glfw.wait_events_timeout(0.1)
+            glfw.wait_events()
 
         glfw.terminate()
     
@@ -147,6 +147,7 @@ def main():
     dThread.start()
     dThread.join()
     win.startOpenGLThread()
+    
 
     
 
