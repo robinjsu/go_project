@@ -9,11 +9,12 @@ import threading
 class EventChan:
     In: Queue
     Out: Queue
-    close: bool
+    closed: bool
 
     def __init__(self) -> None:
         self.In = Queue()
         self.Out = Queue()
+        self.closed = False
     
     def open(self):
         '''
@@ -23,7 +24,7 @@ class EventChan:
         eventThread.start()
     
     def poll_events(self) -> None:
-        while not self.close:
+        while not self.closed:
             event = self.In.get(block=True)
             print(f'event received: {event}')
             self.In.task_done()
@@ -37,7 +38,7 @@ class EventChan:
             self.Out.put(event)
             
     def close(self) -> None:
-        self.close = True
+        self.closed = True
         
     # def send(self, event: Any):
     #     pass

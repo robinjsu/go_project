@@ -1,3 +1,4 @@
+from email.mime import base
 import glfw
 import OpenGL.GL as gl
 import OpenGL.GLU as glu
@@ -43,14 +44,7 @@ class Window():
         self.draw = DrawChan()
         self.events = EventChan()
         self.image = Image.new("RGBA", (self.options.width, self.options.height), (255,255,255,255))
-
         self.initGLFW()
-
-    def send(self, item: Any) -> None:
-        pass
-
-    def receive(self) -> Any:
-        pass
 
     def draw(self) -> None:
         pass
@@ -68,7 +62,6 @@ class Window():
     def initGLFW(self):
         if not glfw.init():
             return
-        
         # set window properties using window_hint()
         if self.options.resizable == True:
             glfw.window_hint(glfw.RESIZABLE, glfw.TRUE)
@@ -88,10 +81,18 @@ class Window():
             return
         
         self.setCallbacks()
-        
 
-    # should be running in the main thread
-    def startOpenGLThread(self) -> None:
+
+    def poll_events(self):
+        while not glfw.window_should_close(self.win):
+            glfw.wait_events()
+
+        glfw.destroy_window(self.win)
+        return
+
+    # update: does not need to run in main thread
+    def startOpenGLThread(self, lock: threading.RLock) -> None:
+        lock.acquire()
         glfw.make_context_current(self.win)
         while not glfw.window_should_close(self.win):
             # Render here, e.g. using pyOpenGL
@@ -102,9 +103,11 @@ class Window():
                  # Swap front and back buffers
                 glfw.swap_buffers(self.win)
             # TODO: how does this waiting interact with messages coming in on a queue?
-            glfw.wait_events()
+            # glfw.wait_events()
 
+        self.events.close()
         glfw.terminate()
+        lock.release()
     
     def renderWindow(self, img: Image.Image) -> None:
         if not self.win:
@@ -129,6 +132,7 @@ class Window():
 def drawSomething(baseImg: Image.Image) -> Image.Image:
     im = baseImg.copy()
     drwCtx = ImageDraw(im)
+    drwCtx.rectangle((0,0,500,500), fill=(0,0,255,255))
     fnt = ImageFont.truetype("../../fonts/Karma/Karma-Regular.ttf", 36)
     drwCtx.text((150,200), "Hello, Python PIL App!", font=fnt, fill=(0,0,0,255))
     out = Image.alpha_composite(baseImg, im)
@@ -144,9 +148,13 @@ def main():
     win = Window(options)
     # simulating drawing event coming from a component
     dThread = threading.Thread(target=drawCommand, args=(win.draw,))
+    drawLock = threading.RLock()
+    drawEventThread = threading.Thread(target=win.startOpenGLThread, args=(drawLock,))
     dThread.start()
     dThread.join()
-    win.startOpenGLThread()
+    drawEventThread.start()
+    win.poll_events()
+    
     
 
     
