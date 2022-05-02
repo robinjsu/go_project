@@ -30,6 +30,9 @@ class Window():
     events: EventChan
     draw: DrawChan
 
+    drawLock: threading.RLock
+    drawStream: threading.Thread
+
     win: glfw._GLFWwindow
     image: Image.Image
     options: Options
@@ -43,11 +46,11 @@ class Window():
         self.mouseY = 0
         self.draw = DrawChan()
         self.events = EventChan()
+        self.drawLock = threading.RLock()
+        self.drawStream = threading.Thread(target=self.startOpenGLThread, args=(self.drawLock,))
         self.image = Image.new("RGBA", (self.options.width, self.options.height), (255,255,255,255))
-        self.initGLFW()
 
-    def draw(self) -> None:
-        pass
+        self.initGLFW()
 
     def setMousePos(self, x, y):
         self.mouseX = x
@@ -59,7 +62,7 @@ class Window():
         kbEvent.setCallback(self)
         
 
-    def initGLFW(self):
+    def initGLFW(self) -> None:
         if not glfw.init():
             return
         # set window properties using window_hint()
@@ -68,7 +71,6 @@ class Window():
         else:
             glfw.window_hint(glfw.RESIZABLE, glfw.FALSE)
         glfw.window_hint(glfw.MAXIMIZED, glfw.TRUE)
-
         self.win = glfw.create_window(
             self.options.width, 
             self.options.height, 
@@ -79,16 +81,17 @@ class Window():
         if not self.win:
             glfw.terminate()
             return
-        
+
         self.setCallbacks()
 
+        return
 
-    def poll_events(self):
+    def poll_events(self) -> None:
         while not glfw.window_should_close(self.win):
             glfw.wait_events()
 
         glfw.destroy_window(self.win)
-        return
+        return 
 
     # update: does not need to run in main thread
     def startOpenGLThread(self, lock: threading.RLock) -> None:
@@ -102,8 +105,6 @@ class Window():
                 self.renderWindow(drawFunc(self.image))
                  # Swap front and back buffers
                 glfw.swap_buffers(self.win)
-            # TODO: how does this waiting interact with messages coming in on a queue?
-            # glfw.wait_events()
 
         self.events.close()
         glfw.terminate()
@@ -127,6 +128,10 @@ class Window():
 
         gl.glFlush()
         return
+    
+    def run(self) -> None:
+        self.drawStream.start()
+        self.poll_events()
 
 
 def drawSomething(baseImg: Image.Image) -> Image.Image:
@@ -148,13 +153,9 @@ def main():
     win = Window(options)
     # simulating drawing event coming from a component
     dThread = threading.Thread(target=drawCommand, args=(win.draw,))
-    drawLock = threading.RLock()
-    drawEventThread = threading.Thread(target=win.startOpenGLThread, args=(drawLock,))
     dThread.start()
     dThread.join()
-    drawEventThread.start()
-    win.poll_events()
-    
+    win.run()
     
 
     
