@@ -5,6 +5,10 @@ name = "pypi"
 
 [packages]
 pyqt5 = "*"
+pyglfw = "*"
+pillow = "*"
+pyopengl = "*"
+glfw = "*"
 
 [dev-packages]
 
