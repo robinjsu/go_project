@@ -20,7 +20,7 @@ class EventChan:
         '''
         Start separate thread to poll for incoming and outgoing events
         '''
-        eventThread = threading.Thread(target=self.poll_events, name="eventsThread")
+        eventThread = threading.Thread(target=self.poll_events, name="EventsThread", daemon=True)
         eventThread.start()
     
     def poll_events(self) -> None:
@@ -29,6 +29,7 @@ class EventChan:
             print(f'event received: {event}')
             self.In.task_done()
             self.Out.put(event, block=True)
+        # TODO: is this part necessary? it is meant to clear out the queue
         while True:
             try:
                 event = self.In.get()
@@ -39,12 +40,6 @@ class EventChan:
             
     def close(self) -> None:
         self.closed = True
-        
-    # def send(self, event: Any):
-    #     pass
-
-    # def receive(self) -> Any:
-    #     pass
 
 
 class DrawChan(Queue):
