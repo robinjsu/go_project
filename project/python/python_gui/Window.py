@@ -87,13 +87,16 @@ class Window(Env):
         while not glfw.window_should_close(self.win):
             glfw.wait_events()
 
-        glfw.destroy_window(self.win)
+        self.events.close()
+        
+        # must be called from main thread
+        glfw.terminate()
         return 
 
     def startOpenGLThread(self, lock: threading.RLock) -> None:
         lock.acquire()
         glfw.make_context_current(self.win)
-        while not glfw.window_should_close(self.win):
+        while self.events.closed == False:
             # Render here
             drawFunc = self.draw.receive()
             # print(f'draw event received: {drawFunc}')
@@ -102,8 +105,6 @@ class Window(Env):
                  # Swap front and back buffers
                 glfw.swap_buffers(self.win)
 
-        self.events.close()
-        glfw.terminate()
         lock.release()
     
     def renderWindow(self, img: Image.Image) -> None:
@@ -129,8 +130,10 @@ class Window(Env):
         print('run window loops')
         self.initDrawThread(self.startOpenGLThread)
         self.events.open()
+        print('start draw stream')
         self.drawStream.start()
-        # self.poll_events()
+        print('poll events')
+        self.poll_events()
         
 
 def drawSomething(baseImg: Image.Image) -> Image.Image:
