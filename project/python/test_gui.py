@@ -1,18 +1,19 @@
-from python_gui import Window as w, Channel as chan, Env, Event
+from python_gui import Window as w, Env, Event
+from python_gui.utils import Box
 from PIL import Image, ImageDraw, ImageFont
 import threading
 
-
 class Display:
-    dims: tuple
     env: Env
-    def __init__(self, env: Env.Env, mainEnvDims: tuple):
+    box: Box
+
+    def __init__(self, env: Env.Env, mainBox: tuple):
         self.env = env
-        self.dims = mainEnvDims
-    
+        self.box = Box(x0=mainBox[0], y0=mainBox[1], x1=mainBox[2], y1=mainBox[3])
+        
     def setBg(self):
         def drawBg(baseImg: Image.Image) -> Image.Image:
-            mainPage = Image.new("RGBA", self.dims)
+            mainPage = Image.new("RGBA", (self.box.x1, self.box.y1))
             drw = ImageDraw.ImageDraw(mainPage)
             drw.rectangle((0,0,800,800), (255,255,255,255), (0,0,255,255), 5)
             drw.rectangle((800,0,1200,900), (0,0,255,255))
@@ -44,10 +45,9 @@ def drawSomething(baseImg: Image.Image) -> Image.Image:
 options = w.Options("Hello Mux!", 1200, 900, False, None)
 win = w.Window(options)
 mux = Env.Mux(win)
-display = Display(mux.addEnv(), (1200,900))
+display = Display(mux.addEnv(), win.image.getbbox())
 
 mux.run()
 display.run()
-# threading.Thread(target=newEnv.drawChan().send, args=(drawSomething,)).start()
 win.run()
 
