@@ -1,43 +1,33 @@
 from queue import Queue
 from typing import Callable, List, Any
 import PIL as pil
-from Channel import DrawChan, EventChan
+from .Channel import DrawChan, EventChan
 import threading
 class Env:
     events: EventChan
     draw: DrawChan
 
-    drawLock: threading.RLock
-    drawStream: threading.Thread
-
     def __init__(self, main: bool):
-        if main == True:
-            self.events = EventChan(Queue(), Queue())
+        self.events = EventChan(Queue(), Queue())
         self.draw = DrawChan()
-
-    def setEventChan(self, eventsIn, eventsOut):
-        self.events = EventChan(eventsIn, eventsOut)
- 
-    def initDrawThread(self, func: Callable[..., Any]):
-        self.drawLock = threading.RLock()
-        self.drawStream = threading.Thread(target=func, args=(self.drawLock,), name=f'{func.__repr__}')
-
+    
     def eventChan(self) -> EventChan:
         return self.events
     
     def drawChan(self) -> DrawChan:
         return self.draw
+
+    def setEventChan(self, eventsIn, eventsOut):
+        self.events = EventChan(eventsIn, eventsOut)
     
-    def drawFunc(self, lock):
-        pass
-    
+    def setDrawChan(self, drawChan):
+        self.draw = drawChan
+
     def run(self) -> None:
         '''
         run should initialize separate threads for drawing and events
         '''
-        self.initDrawThread(self.drawFunc)
-        self.events.open()
-        self.drawStream.start()
+        pass
 
 
 
@@ -46,35 +36,62 @@ class Env:
 # mux will receive events from the sub envs and pass on to the main env
 class Mux(Env):
     '''
-    The Mux class acts as a multiplexer for the main environment
-    Will throw an error if it is initialized without a main.
+    The Mux class acts as a multiplexer for the main environment. It can create new sub-environments that communicate with the Mux via Channel objects.
+    The Mux receives events from the main Env, which it passes to the multiplex Envs. It receives drawing commands from the sub-Envs, which it passes to the main Env.
+    Will throw an error if it is initialized without a main Env.
     '''
 
     events: EventChan
     draw: DrawChan
 
-    drawLock: threading.RLock
     drawStream: threading.Thread
+    eventStream: threading.Thread
 
     main: Env
     envs: List[Env]
-    mainEvents: EventChan
-    muxEvents: List[EventChan]
+    # mainEvents: EventChan
+    # muxEvents: List[EventChan]
 
     def __init__(self, mainEnv: Env):
-        assert mainEnv != None, f'Mux must be connected to a main environment'
+        assert mainEnv != None, f'missing Main Env: Mux must be created from an existing Env'
         super().__init__(False)
-        self.events = EventChan(Queue(), Queue())
+        # self.events = EventChan(Queue(), Queue())
         self.main = mainEnv
         self.envs = []
-        self.mainEvents = None
-        self.muxEvents = []
+        self.handleDrawCommands()
+        self.pollEvents()
+        # self.mainEvents = None
+        # self.muxEvents = []
     
     def receiveMainEvents(self) -> None:
         '''
         Attach main events queue to mux
         '''
-        self.mainEvents = EventChan(self.main.events.getEventsOut(), Queue())
+        self.events = EventChan(self.main.events.getEventsOut(), Queue())
+    
+    def pollEvents(self) -> None:
+        '''
+        Create thread to poll for events from main Env
+        '''
+        def poll():
+            while True:
+                event = self.events.receive()
+                if event is not None:
+                    self.events.send(event)
+        self.eventStream = threading.Thread(target=poll, daemon=True)
+
+    def handleDrawCommands(self) -> None:
+        '''
+        Create thread to handle seinding drawing commands to the main window
+        '''
+        drawLock = threading.RLock()
+        def pollDrawCmds(lock: threading.RLock):
+            lock.acquire()
+            while True:
+                cmd = self.draw.receive()
+                if cmd is not None:
+                    self.main.drawChan().send(cmd)
+        self.drawStream = threading.Thread(target=pollDrawCmds, args=(drawLock,), daemon=True)
   
     def addEnv(self) -> Env:  
         '''
@@ -82,31 +99,17 @@ class Mux(Env):
         '''      
         newEnv = Env(False)
         newEnv.setEventChan(self.eventChan().getEventsOut(), Queue())
-        self.draw = newEnv.drawChan()
+        newEnv.setDrawChan(self.draw)
         self.envs.append(newEnv)
-        self.muxEvents.append(newEnv.eventChan().getEventsOut())
 
         return newEnv
 
-    def eventChan(self) -> EventChan:
-        return self.events
-
-    def drawChan(self) -> DrawChan:
-        return self.draw
-
-    
-    def run(self):
-        self.initDrawThread(self.drawFunc)
-        print('open events stream')
-        self.events.open()
-        print('open draw stream')
+    def run(self) -> None:
+        '''
+        Start drawing and event threads
+        '''
+        # TODO: put logic here for polling for drawing events from envs, and to send to the window
+        self.eventStream.start()
         self.drawStream.start()
-        
-        print('start envs')
-        for e in self.envs:
-            e.run()
-        print('run main')
-        self.main.run()
-        
-        
+    
         

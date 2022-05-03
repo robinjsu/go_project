@@ -10,33 +10,23 @@ class EventChan:
     In: Queue
     Out: Queue
     closed: bool
+    eventThread: threading.Thread
 
     def __init__(self, chanIn, chanOut) -> None:
         self.In = chanIn
         self.Out = chanOut
         self.closed = False
     
-    def open(self):
-        '''
-        Start separate thread to poll for incoming and outgoing events
-        '''
-        eventThread = threading.Thread(target=self.poll_events, name=f'EventsThread', daemon=True)
-        print('start events thread')
-        eventThread.start()
+    def receive(self) -> Any:
+        try:
+            event = self.In.get(block=True, timeout=0.1)
+        except Empty:
+            return None
+        self.In.task_done()
+        return event 
     
-    def poll_events(self) -> None:
-        while not self.closed:
-            event = self.In.get(block=True)
-            self.In.task_done()
-            self.Out.put(event, block=True)
-        # TODO: is this part necessary? it is meant to clear out the queue
-        while True:
-            try:
-                event = self.In.get()
-            except Empty:
-                return
-            self.In.task_done()
-            self.Out.put(event)
+    def send(self, event: Any) -> None:
+        self.Out.put(event, block=True)
             
     def close(self) -> None:
         self.closed = True
@@ -52,7 +42,8 @@ class DrawChan(Queue):
         return super().__init__()
 
     def send(self, img: Callable[..., Image.Image]):
-        self.put(img)
+        print('sending...')
+        self.put(img, block=True)
 
     def receive(self) -> Callable[..., Image.Image]:
         try:
