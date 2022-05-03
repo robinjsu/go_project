@@ -57,17 +57,6 @@ class Window(Env):
             keyEvent = KeyEvent(key, action)
             self.events.send(keyEvent)
 
-            if key == int(glfw.KEY_DOWN):
-                print("kbdown")
-            elif key == int(glfw.KEY_UP):
-                print("kbup")
-            elif key == int(glfw.KEY_LEFT):
-                print("kbleft")
-            elif key == int(glfw.KEY_RIGHT):
-                print("kbright")
-            else:
-                print(glfw.get_key_name(key, scancode))
-
         glfw.set_cursor_pos_callback(self.win, cursorCallback)
         glfw.set_mouse_button_callback(self.win, mCallback)
         glfw.set_key_callback(self.win, kbCallback)
