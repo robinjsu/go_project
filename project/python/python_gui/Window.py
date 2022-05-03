@@ -9,7 +9,6 @@ from typing import NamedTuple, Any, Callable
 import queue as q
 import threading
 
-from .Channel import DrawChan, EventChan
 from .Event import *
 from .Env import Env
 
@@ -47,9 +46,31 @@ class Window(Env):
         self.mouseY = y
 
     def setCallbacks(self):
-        mouseEvent, kbEvent = MouseEvent(), KbEvent()
-        mouseEvent.setCallback(self)
-        kbEvent.setCallback(self)
+        def cursorCallback(win: glfw._GLFWwindow, x: float, y: float):
+            self.setMousePos(x,y)
+        
+        def mCallback(win: glfw._GLFWwindow, button: int, action: int, mods: int):
+            mouseEvent = MouseEvent(button, glfw.get_cursor_pos(win)[0], glfw.get_cursor_pos(win)[1], action)
+            self.events.send(mouseEvent)
+
+        def kbCallback(win: glfw._GLFWwindow, key: int, scancode: int, action: int, mods: int) -> None:
+            keyEvent = KeyEvent(key, action)
+            self.events.send(keyEvent)
+
+            if key == int(glfw.KEY_DOWN):
+                print("kbdown")
+            elif key == int(glfw.KEY_UP):
+                print("kbup")
+            elif key == int(glfw.KEY_LEFT):
+                print("kbleft")
+            elif key == int(glfw.KEY_RIGHT):
+                print("kbright")
+            else:
+                print(glfw.get_key_name(key, scancode))
+
+        glfw.set_cursor_pos_callback(self.win, cursorCallback)
+        glfw.set_mouse_button_callback(self.win, mCallback)
+        glfw.set_key_callback(self.win, kbCallback)
 
     def initGLFW(self) -> None:
         if not glfw.init():
@@ -96,7 +117,6 @@ class Window(Env):
             while self.events.closed == False:
                 # Render here
                 drawFunc = self.draw.receive()
-                # print(f'draw event received: {drawFunc}')
                 if drawFunc != None:
                     self.renderWindow(drawFunc(self.image))
                     # Swap front and back buffers
