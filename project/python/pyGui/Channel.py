@@ -1,11 +1,8 @@
-import queue
 from queue import Queue, Empty
 from PIL import Image
 from typing import Any, Callable
 import threading
 
-# base class for event "channels"
-# TODO: all logic for handling Queues should happen here, and encapsulated
 class EventChan:
     In: Queue
     Out: Queue
@@ -30,6 +27,9 @@ class EventChan:
             
     def close(self) -> None:
         self.closed = True
+
+    def getEventsIn(self) -> Queue:
+        return self.In
     
     def getEventsOut(self) -> Queue:
         return self.Out
@@ -42,7 +42,6 @@ class DrawChan(Queue):
         return super().__init__()
 
     def send(self, img: Callable[..., Image.Image]):
-        print('sending...')
         self.put(img, block=True)
 
     def receive(self) -> Callable[..., Image.Image]:

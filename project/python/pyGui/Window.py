@@ -1,16 +1,12 @@
-from email.mime import base
 import glfw
 import OpenGL.GL as gl
-import OpenGL.GLU as glu
-# import PIL.Image as Image
-# from PIL.ImageDraw import ImageDraw
-from PIL import Image, ImageDraw, ImageFont
-from typing import NamedTuple, Any, Callable
-import queue as q
+from PIL import Image
+from typing import NamedTuple
 import threading
 
 from .Event import *
 from .Env import Env
+from .utils import Box, Point
 
 class Options(NamedTuple):  
     title: str
@@ -21,12 +17,12 @@ class Options(NamedTuple):
 
 class Window(Env):
     '''
-    Window manages the window context and drawing to the interface
-    It also manages the mouse and keyboard events within the context
+    Window manages the window context and drawing to the interface. It also manages the mouse and keyboard events within the context.
     '''
-    win: glfw._GLFWwindow
-    image: Image.Image
     options: Options
+    win: glfw._GLFWwindow
+    win2: glfw._GLFWwindow
+    image: Image.Image
     mouseX: float
     mouseY: float
     drawStream: threading.Thread
@@ -42,12 +38,28 @@ class Window(Env):
         self.handleDrawCommands()
 
     def setMousePos(self, x, y):
+        '''
+        Save mouse position as cursor moves across the window context
+        '''
         self.mouseX = x
         self.mouseY = y
 
     def setCallbacks(self):
+        '''
+        Set input callbacks for main context. The callback functions put events onto the main event queue,
+        which gets propagated to all sub-Envs created with the Mux.
+        '''
         def cursorCallback(win: glfw._GLFWwindow, x: float, y: float):
             self.setMousePos(x,y)
+            mainBox = Box(0,0,800,800)
+            point = Point(glfw.get_cursor_pos(win)[0], glfw.get_cursor_pos(win)[1])
+            if mainBox.contains(point):
+                cursor = glfw.create_standard_cursor(glfw.IBEAM_CURSOR)
+                
+            else:
+                cursor = glfw.create_standard_cursor(glfw.ARROW_CURSOR)
+            glfw.set_cursor(win, cursor)
+    
         
         def mCallback(win: glfw._GLFWwindow, button: int, action: int, mods: int):
             mouseEvent = MouseEvent(button, glfw.get_cursor_pos(win)[0], glfw.get_cursor_pos(win)[1], action)
@@ -62,6 +74,9 @@ class Window(Env):
         glfw.set_key_callback(self.win, kbCallback)
 
     def initGLFW(self) -> None:
+        '''
+        Initialze GLFW library and window context. Callback functions for user input are also initialized.
+        '''
         if not glfw.init():
             return
         if self.options.resizable == True:
@@ -76,9 +91,12 @@ class Window(Env):
             None, 
             None
         )
+
         if not self.win:
             glfw.terminate()
             return
+        
+        glfw.set_input_mode(self.win, glfw.CURSOR, glfw.CURSOR_NORMAL)
 
         self.setCallbacks()
 
@@ -98,6 +116,9 @@ class Window(Env):
         return 
 
     def handleDrawCommands(self) -> None:
+        '''
+        Create thread for listening for drawing commands send from the Mux or another Env.
+        '''
         drawLock = threading.RLock()
         def startOpenGLThread(lock: threading.RLock) -> None:
             self.drawLock = threading.RLock()
@@ -116,6 +137,10 @@ class Window(Env):
         return
   
     def renderWindow(self, img: Image.Image) -> None:
+        '''
+        Main rendering operations with OpenGL, ensures proper display to the user.
+        img: the main OpenGL context within the Window object that gets drawn to.
+        '''
         if not self.win:
             print("glfw context not created")
             return
@@ -130,11 +155,13 @@ class Window(Env):
             gl.GL_RGBA, 
             gl.GL_UNSIGNED_BYTE, cpy.tobytes()
         )
-
         gl.glFlush()
         return
     
-    def run(self) -> None:         
+    def run(self) -> None:   
+        '''
+        Begin drawing and event threads
+        '''      
         self.drawStream.start()
         self.pollEvents()
         return
