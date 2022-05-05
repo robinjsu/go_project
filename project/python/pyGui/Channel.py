@@ -16,7 +16,7 @@ class EventChan:
     
     def receive(self) -> Any:
         try:
-            event = self.In.get(block=True, timeout=0.1)
+            event = self.In.get(block=True)
         except Empty:
             return None
         self.In.task_done()
@@ -46,7 +46,7 @@ class DrawChan(Queue):
 
     def receive(self) -> Callable[..., Image.Image]:
         try:
-            drawCommand = self.get(block=True, timeout=0.1)
+            drawCommand = self.get(block=True)
         except Empty:
             return None
         self.task_done()
