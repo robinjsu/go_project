@@ -26,12 +26,15 @@ class Window(Env):
     mouseX: float
     mouseY: float
     drawStream: threading.Thread
+    readyLock: threading.Condition
 
     def __init__(self, options: Options):
         super().__init__(True)
         assert (self.events is not None) and (self.draw is not None), f'events and draw channels not properly initialized'
         self.win = glfw._GLFWwindow()
         self.options = options
+        self.readyLock = threading.Condition()
+        # self.readyLock.acquire()
         self.image = Image.new("RGBA", (self.options.width, self.options.height), (255,255,255,255))
         self.setMousePos(0,0)
         self.initGLFW()
@@ -133,7 +136,7 @@ class Window(Env):
                     glfw.swap_buffers(self.win)
 
             lock.release()
-        self.drawStream = threading.Thread(target=startOpenGLThread, args=(drawLock,), name='WindowDrawThread')
+        self.drawStream = threading.Thread(target=startOpenGLThread, args=(drawLock,), name='WindowDrawThread', daemon=True)
         return
   
     def renderWindow(self, img: Image.Image) -> None:
@@ -161,7 +164,9 @@ class Window(Env):
     def run(self) -> None:   
         '''
         Begin drawing and event threads
-        '''      
+        ''' 
+        with self.readyLock:
+            self.readyLock.notify_all()
         self.drawStream.start()
         self.pollEvents()
         return

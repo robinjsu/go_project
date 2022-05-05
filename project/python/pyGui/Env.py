@@ -1,16 +1,25 @@
 from queue import Queue
-from typing import List
+from typing import List, Callable
 import threading
+from PIL import Image
 
 from .Channel import DrawChan, EventChan
+from .Event import MouseEvent, KeyEvent
 
+# TODO: how to poll for events in a non-blocking way, such that the env can write custom callbacks for when an event is received?
 class Env:
     events: EventChan
     draw: DrawChan
+    window: bool
+    ready: threading.Condition
 
-    def __init__(self, main: bool):
+    def __init__(self, main=False):
+        self.window = main
         self.events = EventChan(Queue(), Queue())
         self.draw = DrawChan()
+    
+    def addCond(self, condLock):
+        self.ready = condLock
     
     def eventChan(self) -> EventChan:
         return self.events
@@ -24,11 +33,36 @@ class Env:
     def setDrawChan(self, drawChan):
         self.draw = drawChan
     
+    def onStartUp(self):
+        pass
+    
+    def onMouseClick(self, action):
+        pass
+
+    def onKeyPress(self, keyPressed):
+        pass
+    
+    def drawImg(self, drawCommand: Callable[...,Image.Image]):
+        self.draw.send(drawCommand)
+
+    def init(self):
+        pass
+    
     def run(self) -> None:
         '''
-        run should initialize separate threads for drawing and events streams
+        should start running it's logic and callback listeners on a thread separate from the main Python interpreter thread
         '''
-        pass
+        def startThreads():
+            with self.ready:
+                self.ready.wait()
+            self.init()
+            while True:
+                event = self.eventChan().receive()
+                if type(event) == MouseEvent:
+                    self.onMouseClick(event.action)
+                elif type(event) == KeyEvent:
+                    self.onKeyPress(event.key)
+        threading.Thread(target=startThreads, name="DisplayThread", daemon=True).start() 
 
 
 # mux should receive events from the main env and pass on to each of the sub envs
@@ -47,26 +81,26 @@ class Mux():
 
     def __init__(self, mainEnv: Env):
         assert mainEnv != None, f'missing Main Env: Mux must be created from an existing Env'
-        # super().__init__(False)
     
         self.main = mainEnv
         self.envs = []
+
   
-    def addEnv(self) -> Env:  
+    def addEnv(self, newEnv: Env, lock) -> Env:  
         '''
         Add new env to the mux. Associate proper queues between the mux env and new component env
         '''      
-        newEnv = Env(False)
         newEnv.setEventChan(self.main.eventChan().getEventsOut(),self.main.eventChan().getEventsIn())
         newEnv.setDrawChan(self.main.drawChan())
+        newEnv.addCond(lock)
         self.envs.append(newEnv)
 
         return newEnv
 
-    def run(self) -> None:
-        '''
-        Begin drawing and event threads
-        '''
-        self.mainEventStream.start()
-        self.muxEventStream.start()
-        self.drawStream.start()
+    # def run(self) -> None:
+    #     '''
+    #     Begin drawing and event threads
+    #     '''
+    #     self.mainEventStream.start()
+    #     self.muxEventStream.start()
+    #     self.drawStream.start()
