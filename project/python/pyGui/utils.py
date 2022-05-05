@@ -1,4 +1,6 @@
-from typing import NamedTuple
+from typing import NamedTuple, Tuple
+from PIL import ImageFont
+import io, os
 
 class Point(NamedTuple):
     x: int
@@ -16,3 +18,11 @@ class Box(NamedTuple):
         :param p: Point object to test
         '''
         return p.x >= self.x0 and p.x < self.x1 and p.y >= self.y0 and p.y < self.y1
+
+def loadFont(filepath) -> ImageFont.ImageFont:
+    return ImageFont.truetype(filepath, size=12)
+
+def loadFile(filepath) -> Tuple[io.FileIO, int]:
+    stats = os.stat(filepath)
+    textObj = open(filepath, 'rb')
+    return textObj, stats.st_size
