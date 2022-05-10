@@ -77,7 +77,6 @@ class Env:
             self.init()
             while True:
                 event = self.eventChan().receive()
-                print(event)
                 if type(event) == Broadcast:
                   self.onBroadcast()
                 if type(event) == MouseEvent:
