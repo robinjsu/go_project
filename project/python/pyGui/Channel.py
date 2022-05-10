@@ -22,6 +22,14 @@ class EventChan:
         self.In.task_done()
         return event 
     
+    def receiveTimeout(self, timeout: float) -> Any:
+        try:
+            event = self.In.get(block=True, timeout=timeout)
+        except Empty:
+            return None
+        self.In.task_done()
+        return event
+    
     def send(self, event: Any) -> None:
         self.Out.put(event, block=True)
             

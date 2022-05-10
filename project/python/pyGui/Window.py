@@ -26,19 +26,19 @@ class Window(Env):
     mouseX: float
     mouseY: float
     drawStream: threading.Thread
-    readyLock: threading.Condition
 
     def __init__(self, options: Options):
         super().__init__(True)
         assert (self.events is not None) and (self.draw is not None), f'events and draw channels not properly initialized'
         self.win = glfw._GLFWwindow()
         self.options = options
-        self.readyLock = threading.Condition()
-        # self.readyLock.acquire()
         self.image = Image.new("RGBA", (self.options.width, self.options.height), (255,255,255,255))
         self.setMousePos(0,0)
         self.initGLFW()
         self.handleDrawCommands()
+    
+    def createLock(self):
+        self._ready = threading.Condition()
 
     def setMousePos(self, x, y):
         '''
@@ -105,7 +105,7 @@ class Window(Env):
 
         return
 
-    def pollEvents(self) -> None:
+    def pollWinEvents(self) -> None:
         '''
         Main loop that listens for events in window
         All callbacks are triggered from here, and should be running in the main thread
@@ -138,6 +138,7 @@ class Window(Env):
             lock.release()
         self.drawStream = threading.Thread(target=startOpenGLThread, args=(drawLock,), name='WindowDrawThread', daemon=True)
         return
+    
   
     def renderWindow(self, img: Image.Image) -> None:
         '''
@@ -147,16 +148,16 @@ class Window(Env):
         if not self.win:
             print("glfw context not created")
             return
-        cpy = img.copy()
-        x, y, width, height = cpy.getbbox()
-        gl.glViewport(x, y, width, height)
+        width, height = glfw.get_framebuffer_size(self.win)
+        imWidth, imHeight = img.width, img.height
+        gl.glViewport(0,0,width, height)
         gl.glRasterPos2d(-1,1)
         gl.glPixelZoom(1, -1)
         gl.glDrawPixels(
-            img.width, 
-            img.height, 
+            imWidth, 
+            imHeight, 
             gl.GL_RGBA, 
-            gl.GL_UNSIGNED_BYTE, cpy.tobytes()
+            gl.GL_UNSIGNED_BYTE, img.tobytes()
         )
         gl.glFlush()
         return
@@ -165,8 +166,8 @@ class Window(Env):
         '''
         Begin drawing and event threads
         ''' 
-        with self.readyLock:
-            self.readyLock.notify_all()
+        with self._ready:
+            self._ready.notify_all()
         self.drawStream.start()
-        self.pollEvents()
+        self.pollWinEvents()
         return

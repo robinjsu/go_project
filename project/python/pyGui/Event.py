@@ -1,5 +1,5 @@
 import glfw
-from typing import NamedTuple, Callable
+from typing import Any, NamedTuple, Callable
 from PIL.ImageDraw import *
 
 class Event():
@@ -38,3 +38,8 @@ class MouseEvent(NamedTuple):
 class KeyEvent(NamedTuple):
     key:    int
     action: int
+
+class Broadcast(NamedTuple):
+    event: Any
+    message: str
+## can maybe define a few subtypes of Broadcast? or leave open to implementation
