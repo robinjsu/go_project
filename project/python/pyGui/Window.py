@@ -148,14 +148,16 @@ class Window(Env):
         if not self.win:
             print("glfw context not created")
             return
+        
+        self.image = img
+        
         width, height = glfw.get_framebuffer_size(self.win)
-        imWidth, imHeight = img.width, img.height
         gl.glViewport(0,0,width, height)
         gl.glRasterPos2d(-1,1)
         gl.glPixelZoom(1, -1)
         gl.glDrawPixels(
-            imWidth, 
-            imHeight, 
+            width, 
+            height, 
             gl.GL_RGBA, 
             gl.GL_UNSIGNED_BYTE, img.tobytes()
         )
