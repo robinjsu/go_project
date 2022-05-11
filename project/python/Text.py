@@ -6,8 +6,12 @@ from pyGui import *
 from pyGui.utils import *
 from const import *
 
+
+# TODO: fix anchor starting point, as it needs to adjust to paging!
+
 lineSpacing = 4
 event = Event()
+
 class Text(Env):
     bounds: Box
     font: ImageFont.ImageFont
@@ -18,6 +22,9 @@ class Text(Env):
     padH: int
     pixelsPerLetter: float
     charsPerWidth: int
+    page: int
+    lines: List
+    numPages: int
 
     def __init__(self, box: tuple, id=rand.randint(0,100)):
         super().__init__(id=id)
@@ -27,6 +34,7 @@ class Text(Env):
         self.height = self.bounds.y1 - self.bounds.y0
         self.padW = self.width - (self.padding * 2)
         self.padH = self.width - (self.padding * 2)
+        self.page = None
     
     def setFont(self, ttf):
         self.font = ttf
@@ -35,24 +43,18 @@ class Text(Env):
 
 
     # assume monospaced font for now
-    def formatText(self, fileObj, fileSz):
+    def formatText(self, text):
         lines = []
-        anchor = Point(0,0)
-        buffer = io.BufferedReader(fileObj, fileSz)
-        text = buffer.peek()
-        text = text.decode('utf-8')
-
         idx = self.makeLineBreak(text[:self.charsPerWidth+1]) + 1
         line = text[:idx].rstrip(' \n')
         sz = self.font.getsize(line)
         lines.append(
             Line(
                 line, 
-                sz, 
-                self.setTextPos(line, anchor)
+                sz,
+                None
             )
         )
-        anchor.add(0, (sz[1] + lineSpacing))
         if len(text) > idx - 1:
             text = text[idx:]
 
@@ -63,11 +65,10 @@ class Text(Env):
             lines.append(
                 Line(
                     line, 
-                    sz, 
-                    self.setTextPos(line, anchor)
+                    sz,
+                    None
                 )
             )
-            anchor.add(0, (sz[1] + lineSpacing))
             if len(text) > idx - 1:
                 text = text[idx:]
 
@@ -98,6 +99,7 @@ class Text(Env):
 
     def setText(self, lines: List[Line]):
         def drawText(baseImg: Image.Image) -> Image.Image:
+            anchor = Point(0,0)
             paddedBox = ImageOps.pad(
                 Image.new("RGBA", (self.width, self.height)), (self.padW, self.padH)
             )
@@ -105,14 +107,15 @@ class Text(Env):
             c = Colors()
             drawCtx = ImageDraw.ImageDraw(paddedBox)
             for l in lines:
-                for w in l.words:
+                txtLine = Line(line=l.line, size=l.size, words=self.setTextPos(l.line, anchor))
+                for w in txtLine.words:
                     drawCtx.text(
                         (w.box.x0, w.box.y0), 
                         w.text, 
                         c.black, 
                         self.font
                     )
-
+                anchor.add(0, ((self.font.getsize(l.line))[1] + lineSpacing))
             bg.alpha_composite(paddedBox, (MARGIN,MARGIN))
             baseImg.alpha_composite(bg, (MARGIN, MARGIN))
             return baseImg
@@ -122,14 +125,28 @@ class Text(Env):
 
     def onMouseClick(self, action):
         if action == event.MouseDown():
-            self.setFont(ImageFont.truetype('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf'))
-            fileObj, fileSz = loadFile('alice.txt')
-            lines = self.formatText(fileObj, fileSz)
-            self.draw.send(self.setText(lines))
+            if self.page == None:
+                self.page = 0
+                self.draw.send(self.setText(self.lines[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+    
+    def onKeyPress(self, keyEvent: KeyEvent):
+        if keyEvent.key == event.ArrowDown() and keyEvent.action == 1:
+            if self.page < self.numPages-1:
+                self.page += 1
+            self.draw.send(self.setText(self.lines[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+        elif keyEvent.key == event.ArrowUp() and keyEvent.action == 1:
+            if self.page > 0:
+                self.page -= 1
+            self.draw.send(self.setText(self.lines[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+
 
     def resize(self):
         self.padW = self.width - (self.padding * 2)
         self.padH = self.width - (self.padding * 2)
-        paddedBox = ImageOps.pad(
-            Image.new("RGBA", (self.width, self.height)), (self.padW, self.padH)
-        )
+        
+    
+    def init(self):
+        self.setFont(ImageFont.truetype('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf'))
+        text, _ = loadFile('alice.txt')
+        self.lines = self.formatText(text)
+        self.numPages = int(math.ceil(len(self.lines) / MAXLINES))

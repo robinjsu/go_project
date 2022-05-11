@@ -77,5 +77,7 @@ def loadFont(filepath) -> ImageFont.ImageFont:
 
 def loadFile(filepath) -> Tuple[io.FileIO, int]:
     stats = os.stat(filepath)
-    textObj = open(filepath, 'rb')
-    return textObj, stats.st_size
+    textObj = open(filepath, 'r')
+    text = textObj.read()
+    return text, stats.st_size
+
