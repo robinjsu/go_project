@@ -4,11 +4,12 @@ import threading, random as rand
 from PIL import Image
 
 from .Channel import DrawChan, EventChan
-from .Event import MouseEvent, KeyEvent, Broadcast
+from .Event import InputEvent, MouseEvent, KeyEvent, Broadcast
 # from .Window import Window
 
 # TODO: how to poll for events in a non-blocking way, such that the env can write custom callbacks for when an event is received?
 class Env:
+    event: InputEvent
     events: EventChan
     draw: DrawChan
     window: bool
@@ -23,7 +24,6 @@ class Env:
         if main == True:
             self.createLock()
 
-    
     def createLock(self):
         assert self.window == True, 'must be Main Env to create lock'
         self._ready = threading.Condition()
@@ -55,7 +55,7 @@ class Env:
     def onMouseClick(self, action):
         pass
 
-    def onKeyPress(self, keyPressed):
+    def onKeyPress(self, keyEvent: KeyEvent):
         pass
     
     def onBroadcast(self, event):
@@ -67,7 +67,7 @@ class Env:
     def init(self):
         pass
     
-    def run(self) -> None:
+    def run(self, name='') -> None:
         '''
         should start running it's logic and callback listeners on a thread separate from the main Python interpreter thread
         '''
@@ -82,14 +82,10 @@ class Env:
                 if type(event) == MouseEvent:
                     self.onMouseClick(event.action)
                 elif type(event) == KeyEvent:
-                    self.onKeyPress(event.key)
-        threading.Thread(target=startThread, name="DisplayThread", daemon=True).start() 
+                    self.onKeyPress(event)
+        threading.Thread(target=startThread, name=f'{name}', daemon=True).start() 
 
 
-# mux should receive events from the main env and pass on to each of the sub envs
-# mux will receive events from the sub envs and pass on to the main env
-# the two situations above can be handled by separate EventChan objects
-# TODO: NEW IDEA - mux is not an env, but simply acts as the component that connects the window to its components
 class Mux():
     '''
     The Mux class acts as a multiplexer for the main environment. It can create new sub-environments that communicate with the Mux via Channel objects.
@@ -102,8 +98,6 @@ class Mux():
     muxEvents: List[EventChan]
     mainEvents: EventChan
     drawEvents: DrawChan
-    # listenMainEvents: threading.Thread
-    # broadcastEvents: threading.Thread
 
     def __init__(self, mainEnv: Env):
         assert mainEnv != None, f'missing Main Env: Mux must be created from an existing Env'
@@ -112,15 +106,11 @@ class Mux():
         self.envs = []
         self.mainEvents = EventChan(mainEnv.eventChan().getEventsOut(), mainEnv.eventChan().getEventsIn())
         self.muxEvents = []
-        # self.listenMainEvents = self.forwardMainEvents()
-        # self.broadcastEvents = self.broadcast()
   
     def addEnv(self, newEnv: Env) -> Env:  
         '''
         Add new env to the mux. Associate proper queues between the mux env and new component env
         '''      
-        # newEnv.setEventChan(self.main.eventChan().getEventsOut(),self.main.eventChan().getEventsIn())
-        # self.muxEvents.append(newEnv.eventChan())
         newEnv.setDrawChan(self.main.drawChan())
         newEnv.addCond(self.main.getLock())
         envChan = EventChan(newEnv.eventChan().getEventsOut(), newEnv.eventChan().getEventsIn())
@@ -138,7 +128,7 @@ class Mux():
                     env.send(event)
         threading.Thread(target=propagate, daemon=True).start()
     
-    def broadcast(self):
+    def beginBroadcast(self):
         def brdcstEvents():
             ready = self.main.getLock()
             with ready:
@@ -157,7 +147,5 @@ class Mux():
         '''
         Begin drawing and event threads
         '''
-        # self.listenMainEvents.start()
-        # self.broadcastEvents.start()
         self.forwardMainEvents()
-        self.broadcast()
+        self.beginBroadcast()

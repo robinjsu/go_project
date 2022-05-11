@@ -150,7 +150,7 @@ class Window(Env):
             return
         
         self.image = img
-        
+
         width, height = glfw.get_framebuffer_size(self.win)
         gl.glViewport(0,0,width, height)
         gl.glRasterPos2d(-1,1)
