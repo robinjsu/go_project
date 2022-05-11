@@ -1,35 +1,32 @@
-from pyGui import Window, Options, Env, Mux
-# from pyGui import Box
-from PIL import Image, ImageDraw, ImageFont
+from pyGui import Window, Options, Mux
+import random as rand, time
 from Display import Display
-
-# def drawSomething(baseImg: Image.Image) -> Image.Image:
-#     im = baseImg.copy()
-#     drwCtx = ImageDraw.ImageDraw(im)
-#     drwCtx.rectangle((0,0,500,500), fill=(0,0,255,255))
-#     fnt = ImageFont.truetype("../../fonts/Karma/Karma-Regular.ttf", 36)
-#     drwCtx.text((150,200), "Hello, Python PIL App!", font=fnt, fill=(0,0,0,255))
-#     out = Image.alpha_composite(baseImg, im)
-#     return out
+from Text import Text
+from const import * 
 
 options: Options
 mux: Mux
 display: Display
+text: Text
 win: Window
 
-def init():
-    options = Options("Hello Mux!", 1200, 900, False, None)
+# TODO: where to put this?
+rand.seed(time.time())
+
+def start():
+    options = Options("PyTextAide", 1200, 900, False, None)
     win = Window(options)
     mux = Mux(win)
-    display = Display(mux.addEnv(), win.image.getbbox())
-
-    return win, display
-
-def main():
-    win, display = init()
-    display.run()
+    display = mux.addEnv(Display(win.image.getbbox(), id=1))
+    text = mux.addEnv(Text(TEXTBOX, id=2))
+    display.run("DisplayThread")
+    text.run("TextThread")
+    mux.run()
     win.run()
 
+def main():
+    start()
+    
 
 if __name__ == '__main__':
     main()
