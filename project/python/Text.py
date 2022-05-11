@@ -1,17 +1,15 @@
-from typing import List, NamedTuple, Tuple
+from typing import List
 from PIL import Image, ImageDraw, ImageFont, ImageOps
-import io, os, math, random as rand, threading
+import io, os, math, random as rand
 
 from pyGui import *
 from pyGui.utils import *
 from const import *
 
 
-# TODO: fix anchor starting point, as it needs to adjust to paging!
-
 lineSpacing = 4
-event = Event()
-
+input = InputEvent
+color = Colors()
 class Text(Env):
     bounds: Box
     font: ImageFont.ImageFont
@@ -30,12 +28,13 @@ class Text(Env):
         super().__init__(id=id)
         self.padding = 5
         self.bounds = Box(box[0], box[1], box[2], box[3])
-        self.width = self.bounds.x1 - self.bounds.x0
-        self.height = self.bounds.y1 - self.bounds.y0
+        self.width = abs(self.bounds.x1 - self.bounds.x0)
+        self.height = abs(self.bounds.y1 - self.bounds.y0)
         self.padW = self.width - (self.padding * 2)
-        self.padH = self.width - (self.padding * 2)
+        self.padH = self.height - (self.padding * 2)
         self.page = None
     
+
     def setFont(self, ttf):
         self.font = ttf
         self.pixelsPerLetter = self.font.getlength('A')
@@ -74,11 +73,13 @@ class Text(Env):
 
         return lines
 
+
     def makeLineBreak(self, line: str) -> int:
         if '\n' in line:
             return line.find('\n')
         else:
             return line.rfind(' ')
+
 
     def setTextPos(self, line: str, anchor: Point):
         words = line.split(' ')
@@ -103,8 +104,7 @@ class Text(Env):
             paddedBox = ImageOps.pad(
                 Image.new("RGBA", (self.width, self.height)), (self.padW, self.padH)
             )
-            bg = Image.new("RGBA", (self.width, self.height), Colors().white)
-            c = Colors()
+            bg = Image.new("RGBA", (self.width-MARGIN, self.height-MARGIN), Colors().white)
             drawCtx = ImageDraw.ImageDraw(paddedBox)
             for l in lines:
                 txtLine = Line(line=l.line, size=l.size, words=self.setTextPos(l.line, anchor))
@@ -112,29 +112,30 @@ class Text(Env):
                     drawCtx.text(
                         (w.box.x0, w.box.y0), 
                         w.text, 
-                        c.black, 
+                        color.black, 
                         self.font
                     )
                 anchor.add(0, ((self.font.getsize(l.line))[1] + lineSpacing))
             bg.alpha_composite(paddedBox, (MARGIN,MARGIN))
-            baseImg.alpha_composite(bg, (MARGIN, MARGIN))
+            baseImg.alpha_composite(bg, (self.bounds.x0+MARGIN, self.bounds.y0+MARGIN))
             return baseImg
         return drawText
     
     
 
     def onMouseClick(self, action):
-        if action == event.MouseDown():
+        if action == input.MouseDown:
             if self.page == None:
                 self.page = 0
                 self.draw.send(self.setText(self.lines[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
     
+
     def onKeyPress(self, keyEvent: KeyEvent):
-        if keyEvent.key == event.ArrowDown() and keyEvent.action == 1:
+        if keyEvent.key == input.ArrowDown and keyEvent.action == 1:
             if self.page < self.numPages-1:
                 self.page += 1
             self.draw.send(self.setText(self.lines[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
-        elif keyEvent.key == event.ArrowUp() and keyEvent.action == 1:
+        elif keyEvent.key == input.ArrowUp and keyEvent.action == 1:
             if self.page > 0:
                 self.page -= 1
             self.draw.send(self.setText(self.lines[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
