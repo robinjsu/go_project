@@ -133,27 +133,3 @@ class Text(Env):
         paddedBox = ImageOps.pad(
             Image.new("RGBA", (self.width, self.height)), (self.padW, self.padH)
         )
-
-    # def run(self) -> None:
-    #     def startThread():
-    #         with self.ready:
-    #             self.ready.wait()
-    #         self.init()
-    #         while True:
-    #             event = self.eventChan().receive()
-    #             if type(event) == MouseEvent:
-    #                 self.onMouseClick(event.action)
-    #             elif type(event) == KeyEvent:
-    #                 self.onKeyPress(event.key)
-    #     threading.Thread(target=startThread, name="DisplayThread", daemon=True).start() 
-
-# if __name__== '__main__':
-    # lines = []
-    # font = ImageFont.truetype('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf')
-    # fileObj, fileSz = loadFile('alice.txt')
-    # buffer = io.BufferedReader(fileObj, fileSz)
-    # text = buffer.read()
-    # text = text.decode('utf-8')
-    
-    
-    
