@@ -1,4 +1,4 @@
-### Building a Concurrent GUI in GO - Special Project (IN PROGRESS AS OF APRIL 2022)
+### Building a Concurrent GUI in GO - Special Project (IN PROGRESS AS OF MAY 2022)
 
 ##### Author: Robin Su
 ##### Advisor: Andrew Tolmach
@@ -16,6 +16,10 @@ The main architecture of this application separates the GUI into components, eac
 #### Planned Application Design:
 
 ![gotextaide](https://user-images.githubusercontent.com/53282793/164770389-36072824-009b-45ef-b026-8fad29d952c0.jpg)
+
+#### Application Design (Python Version):
+
+![pytextaide](./images/python_app_design.jpg)
 
 -------
 
