@@ -44,27 +44,52 @@ class Env:
         return self.draw
 
     def setEventChan(self, eventsIn, eventsOut):
+        '''
+        Link the Env's event channels to the correct channel objects
+        :param eventsIn: Queue to receive events
+        :param eventsOut: Queue to send events
+        '''
         self.events = EventChan(eventsIn, eventsOut)
     
     def setDrawChan(self, drawChan):
+        '''
+        Link the Env's draw channel to the Window (main) components draw channel, where it sends commands.
+        :param drawChan: DrawChan object where drawing functions are sent
+        '''
         self.draw = drawChan
     
-    def onStartUp(self):
-        pass
-    
-    def onMouseClick(self, action):
+    def onMouseClick(self, event):
+        '''
+        Callback function that responds to a mouse button being pressed or released.
+        :param event: a MouseEvent object that represents the mouse button and action that occurred.
+        '''
         pass
 
     def onKeyPress(self, keyEvent: KeyEvent):
+        '''
+        Callback function that responds to a key being pressed or released.
+        :param event: a KeyEvent object that represents the key pressed and action that occurred.
+        '''
         pass
     
     def onBroadcast(self, event):
+        '''
+        Callback function that responds to a Broadcast event, sent by a separate component and propagated by the Mux.
+        :param event: an arbitrary Broadcast object, containing an event type and a message.
+        '''
         pass
 
     def drawImg(self, drawCommand: Callable[...,Image.Image]):
+        '''
+        Create drawing function that gets sent to the Window (main Env) for rendering.
+        :param drawCommand: the drawing function to send. The function must match the function signature.
+        '''
         self.draw.send(drawCommand)
 
     def init(self):
+        '''
+        A function to contain any component setup before the event loop starts in its own thread.
+        '''
         pass
     
     def run(self, name='') -> None:
@@ -78,9 +103,9 @@ class Env:
             while True:
                 event = self.eventChan().receive()
                 if type(event) == Broadcast:
-                  self.onBroadcast()
+                  self.onBroadcast(event)
                 if type(event) == MouseEvent:
-                    self.onMouseClick(event.action)
+                    self.onMouseClick(event)
                 elif type(event) == KeyEvent:
                     self.onKeyPress(event)
         threading.Thread(target=startThread, name=f'{name}', daemon=True).start() 
@@ -120,22 +145,28 @@ class Mux():
         return newEnv
 
     def forwardMainEvents(self):
+        '''
+        Create thread for listening for main events and forwarding them to the other components.
+        '''
         def propagate():
             while True:
                 event = self.mainEvents.receive()
-                print(event)
                 for env in self.muxEvents:
                     env.send(event)
         threading.Thread(target=propagate, daemon=True).start()
     
     def beginBroadcast(self):
+        '''
+        Create thread for listening for events coming from components and 
+        broadcasting them to all other components (including the main Window).
+        '''
         def brdcstEvents():
             ready = self.main.getLock()
             with ready:
                 ready.wait() 
             while True:
                 for env in range(len(self.envs)):
-                    event = self.muxEvents[env].receive()
+                    event = self.muxEvents[env].receiveTimeout(timeout=0.1)
                     self.mainEvents.send(event)
                     for e in range(len(self.envs)):
                         if self.envs[e].id != self.envs[env].id and event is not None:

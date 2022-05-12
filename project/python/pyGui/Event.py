@@ -32,4 +32,4 @@ class KeyEvent(NamedTuple):
 class Broadcast(NamedTuple):
     event: Any
     message: str
-## can maybe define a few subtypes of Broadcast? or leave open to implementation
+## TODO: can maybe define a few subtypes of Broadcast? or leave open to implementation

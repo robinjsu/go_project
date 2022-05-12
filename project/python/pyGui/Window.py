@@ -40,29 +40,22 @@ class Window(Env):
     def createLock(self):
         self._ready = threading.Condition()
 
-    def setMousePos(self, x, y):
+    def setMousePos(self, x: float, y: float):
         '''
         Save mouse position as cursor moves across the window context
+        :param x: 
+        :param y: 
         '''
         self.mouseX = x
         self.mouseY = y
 
-    def setCallbacks(self):
+    def setGLFWCallbacks(self):
         '''
         Set input callbacks for main context. The callback functions put events onto the main event queue,
-        which gets propagated to all sub-Envs created with the Mux.
+        which gets broadcast to all sub-Envs created with the Mux.
         '''
         def cursorCallback(win: glfw._GLFWwindow, x: float, y: float):
             self.setMousePos(x,y)
-            mainBox = Box(0,0,800,800)
-            point = Point(glfw.get_cursor_pos(win)[0], glfw.get_cursor_pos(win)[1])
-            if mainBox.contains(point):
-                cursor = glfw.create_standard_cursor(glfw.IBEAM_CURSOR)
-                
-            else:
-                cursor = glfw.create_standard_cursor(glfw.ARROW_CURSOR)
-            glfw.set_cursor(win, cursor)
-    
         
         def mCallback(win: glfw._GLFWwindow, button: int, action: int, mods: int):
             mouseEvent = MouseEvent(button, glfw.get_cursor_pos(win)[0], glfw.get_cursor_pos(win)[1], action)
@@ -101,7 +94,7 @@ class Window(Env):
         
         glfw.set_input_mode(self.win, glfw.CURSOR, glfw.CURSOR_NORMAL)
 
-        self.setCallbacks()
+        self.setGLFWCallbacks()
 
         return
 

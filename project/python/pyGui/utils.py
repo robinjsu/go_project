@@ -1,6 +1,6 @@
-from typing import NamedTuple, Tuple, List
+from typing import Tuple, List
 from PIL import ImageFont
-import io, os
+import io, os, math
 
 class Point:
     x: int
@@ -39,7 +39,7 @@ class Box:
         Returns whether the given point is within the bounds of the box. Exclusive of the Box.x1 and Box.y1 values
         :param p: Point object to test
         '''
-        return p.x >= self.x0 and p.x < self.x1 and p.y >= self.y0 and p.y < self.y1
+        return p.x >= math.floor(self.x0) and p.x < math.ceil(self.x1) and p.y >= math.floor(self.y0) and p.y < math.ceil(self.y1)
 
     def add(self, p: Point):
         self.x1 += p.x
@@ -50,6 +50,15 @@ class Box:
         self.y0 += p.y
         self.x1 += p.x
         self.y1 += p.y
+    
+    def copy(self):
+        return Box(self.x0, self.y0, self.x1, self.y1)
+    
+    def size(self):
+        w = math.ceil(abs(self.x1 - self.x0))
+        h = math.ceil(abs(self.y1 - self.y0))
+        return w,h
+
 class Word:
     text: str
     box: Box
@@ -72,12 +81,18 @@ class Line:
     def highlight(self):
         pass
 
-def loadFont(filepath) -> ImageFont.ImageFont:
-    return ImageFont.truetype(filepath, size=12)
+def loadFont(filepath, fontSize) -> ImageFont.ImageFont:
+    return ImageFont.truetype(filepath, size=fontSize)
 
 def loadFile(filepath) -> Tuple[io.FileIO, int]:
     stats = os.stat(filepath)
     textObj = open(filepath, 'r')
     text = textObj.read()
     return text, stats.st_size
+
+def makeLineBreak(line: str) -> int:
+        if '\n' in line:
+            return line.find('\n')
+        else:
+            return line.rfind(' ')
 
