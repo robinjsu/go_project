@@ -61,10 +61,11 @@ class Window(Env):
         which gets broadcast to all sub-Envs created with the Mux.
         '''
         def cursorCallback(win: glfw._GLFWwindow, x: float, y: float):
-            self.setMousePos(x,y)
+            self.setMousePos(x*2,y*2)
         
         def mCallback(win: glfw._GLFWwindow, button: int, action: int, mods: int):
-            mouseEvent = MouseEvent(button, glfw.get_cursor_pos(win)[0], glfw.get_cursor_pos(win)[1], action)
+            posX, posY = glfw.get_cursor_pos(win)
+            mouseEvent = MouseEvent(button, posX*2, posY*2, action)
             self.events.send(mouseEvent)
 
         def kbCallback(win: glfw._GLFWwindow, key: int, scancode: int, action: int, mods: int) -> None:
@@ -149,7 +150,6 @@ class Window(Env):
             print("glfw context not created")
             return
         self.image = img
-        # self.
         width, height = glfw.get_framebuffer_size(self.win)
         gl.glViewport(0, 0, width, height)
         gl.glRasterPos2d(-1,1)

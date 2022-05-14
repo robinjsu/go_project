@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Callable
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io, os, math, random as rand
 
@@ -10,10 +10,10 @@ from const import *
 ''' 
 TODO: 
  - add hint for paging as way to read
- - how to best set an universal anchor for where the text begins?
 '''
 
 lineSpacing = 4
+fontSize = 24
 input = InputEvent
 color = Colors()
 class Text(Env):
@@ -35,7 +35,8 @@ class Text(Env):
     def __init__(self, box: tuple, id=rand.randint(0,100)):
         super().__init__(id=id)
         self.padding = MARGIN
-        self.bounds = Box(box[0], box[1], box[2], box[3])
+        self.bounds = Box(box[0], box[1], int(box[2]*.75), int(box[3]*.75))
+        print(box)
         self.width = abs(self.bounds.x1 - self.bounds.x0)
         self.height = abs(self.bounds.y1 - self.bounds.y0)
         self.padW = self.width - (self.padding * 2)
@@ -44,56 +45,41 @@ class Text(Env):
         self.anchor = tuple([self.bounds.x0+(self.padding*2), self.bounds.y0+(self.padding*2)])
     
 
-    def setFont(self, ttf):
-        self.font = ttf
+    def setFont(self, ttf, sz):
+        '''
+        Set font style for this component. Accepts TrueType standard font styles.
+        :param ttf: an ImageFont object (from the Python Pillow library)
+        '''
+        self.font = loadFont(ttf, sz)
         self.pixelsPerLetter = self.font.getlength('A')
         self.charsPerWidth = self.padW // math.ceil(self.pixelsPerLetter)
 
 
     # assume monospaced font for now
-    def formatText(self, text):
-        lines = []
+    def formatText(self, text: str):
+        '''
+        Format a body of text into lines that won't exceed the calculated width of the component.
+        :param text: a string representing entire body of text to display
+        '''
         self.plainText = []
-        idx = self.makeLineBreak(text[:self.charsPerWidth+1]) + 1
+        idx = makeLineBreak(text[:self.charsPerWidth+1]) + 1
         line = text[:idx].rstrip(' \n')
-        # sz = self.font.getsize(line)
-        # lines.append(
-        #     Line(
-        #         line, 
-        #         sz,
-        #         None
-        #     )
-        # )
-        self.plainText.append(line)
-        if len(text) > idx - 1:
-            text = text[idx:]
-
         while line != '':
-            idx = self.makeLineBreak(text[:self.charsPerWidth+1]) + 1
-            line = text[:idx].rstrip(' \n')
-            # sz = self.font.getsize(line)
-            # lines.append(
-            #     Line(
-            #         line, 
-            #         sz,
-            #         None
-            #     )
-            # )
             self.plainText.append(line)
             if len(text) > idx - 1:
                 text = text[idx:]
+            idx = makeLineBreak(text[:self.charsPerWidth+1]) + 1
+            line = text[:idx].rstrip(' \n')
 
-        # return lines
-
-
-    def makeLineBreak(self, line: str) -> int:
-        if '\n' in line:
-            return line.find('\n')
-        else:
-            return line.rfind(' ')
+        return self.plainText
 
 
     def setTextPos(self, line: str, anchor: Point):
+        '''
+        Set word positions for a single line of text, given a text anchor as the starting position.
+        :param line: a line of text as a string.
+        :param anchor: a Point object representing the starting position for the text line, as the top left corner of the text.
+        '''
         words = line.split(' ')
         wrdSzs = []
         for w in words:
@@ -111,23 +97,27 @@ class Text(Env):
 
 
     def setText(self, lines: List[str]):
+        '''
+        Set coordinate positions for given lines of text. Calculates position for each individual word.
+        :param lines: a list of strings represented text. Text should have been previously split into lines using
+            `formatText` to ensure that text will not overflow beyond component borders.
+        '''
         txtLines = []
         anchor = Point(self.anchor[0], self.anchor[1])
-        for l in range(len(lines)):
+        for line in lines:
             txtLine = Line(
-                line=lines[l],
-                size=self.font.getsize(lines[l]),
-                words=self.setTextPos(lines[l], anchor)
+                line=line,
+                size=self.font.getsize(line),
+                words=self.setTextPos(line, anchor)
             )
             txtLines.append(txtLine)
-            anchor.add(0, ((self.font.getsize(lines[l]))[1] + lineSpacing))
+            anchor.add(0, ((self.font.getsize(line))[1] + lineSpacing))
         self.lines = txtLines
 
         def drawText(baseImg: Image.Image) -> Image.Image:
             paddedBox = ImageOps.pad(
                 Image.new("RGBA", (self.width, self.height), color.white), (self.padW, self.padH)
             )
-            bg = Image.new("RGBA", (self.width, self.height), Colors().ultra)
             drawCtx = ImageDraw.ImageDraw(paddedBox)
             for l in self.lines:
                 for w in l.words:
@@ -138,19 +128,22 @@ class Text(Env):
                         self.font,
                         anchor='la'
                     )
-                # anchor.add(0, ((self.font.getsize(lines[l].line))[1] + lineSpacing))
-            # bg.alpha_composite(paddedBox)
             baseImg.alpha_composite(paddedBox, (self.bounds.x0, self.bounds.y0))
             return baseImg
 
         return drawText
     
-    def findWord(self, p: Point):
-        # lines = self.lines[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]
+
+    def findWord(self, p: Point) -> tuple:
+        '''
+        Find and highlight the word clicked on with the mouse.
+        :param p: Point object that represents where the user clicked within the text area.
+        '''
+        wrd = None
         for l in self.lines:
             for w in l.words:
                 if w.box.contains(p):
-                    print(p, w.box.x0, w.box.y0, w.box.x1, w.box.y1)
+                    wrd = w.copy()
                     def highlightWord(base: Image.Image) -> Image.Image:
                         textbox = Image.new("RGBA", w.box.size())
                         drawWord = ImageDraw.ImageDraw(textbox)
@@ -158,28 +151,40 @@ class Text(Env):
                         drawWord.text((0,0), w.text, color.black, self.font)
                         base.alpha_composite(textbox, (w.box.x0, w.box.y0), (0,0))
                         return base
-                    return highlightWord
-
+                    return (highlightWord, wrd)
+        return None, None
 
     def onMouseClick(self, event: MouseEvent):
+        '''
+        Callback function that responds to a mouse button being pressed or released.
+        :param event: a MouseEvent object that represents the mouse button and action that occurred.
+        '''
         pt = Point(event.xpos, event.ypos)
         if event.action == input.MouseDown:
             if self.page == None:
                 self.page = 0
-                self.draw.send(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
-            else:
-                self.draw.send(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
-                self.draw.send(self.findWord(pt))
+                self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+            elif self.bounds.contains(pt):
+                highlightFunc, word = self.findWord(pt)
+                if highlightFunc != None:
+                    self.events.send(Broadcast("DEFINE", word))
+                    self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+                    self.drawImg(highlightFunc)
+
 
     def onKeyPress(self, keyEvent: KeyEvent):
+        '''
+        Callback function that responds to a key being pressed or released.
+        :param event: a KeyEvent object that represents the key pressed and action that occurred.
+        '''
         if keyEvent.key == input.ArrowDown and keyEvent.action == 1:
             if self.page < self.numPages-1:
                 self.page += 1
-            self.draw.send(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+            self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
         elif keyEvent.key == input.ArrowUp and keyEvent.action == 1:
             if self.page > 0:
                 self.page -= 1
-            self.draw.send(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+            self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
 
 
     def resize(self):
@@ -188,7 +193,7 @@ class Text(Env):
         
     
     def init(self):
-        self.setFont(loadFont('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf'))
+        self.setFont('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf', fontSize)
         text, _ = loadFile('alice.txt')
-        self.lines = self.formatText(text)
+        self.formatText(text)
         self.numPages = int(math.ceil(len(self.plainText) / MAXLINES))
