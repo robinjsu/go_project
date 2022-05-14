@@ -26,6 +26,7 @@ class Text(Env):
     padH: int
     pixelsPerLetter: float
     charsPerWidth: int
+    linesPerPage: int
     page: int
     lines: List
     plainText: List
@@ -36,7 +37,6 @@ class Text(Env):
         super().__init__(id=id)
         self.padding = MARGIN
         self.bounds = Box(box[0], box[1], int(box[2]*.75), int(box[3]*.75))
-        print(box)
         self.width = abs(self.bounds.x1 - self.bounds.x0)
         self.height = abs(self.bounds.y1 - self.bounds.y0)
         self.padW = self.width - (self.padding * 2)
@@ -51,8 +51,9 @@ class Text(Env):
         :param ttf: an ImageFont object (from the Python Pillow library)
         '''
         self.font = loadFont(ttf, sz)
-        self.pixelsPerLetter = self.font.getlength('A')
-        self.charsPerWidth = self.padW // math.ceil(self.pixelsPerLetter)
+        self.pixelsPerLetter, letterHeight = self.font.getsize('A')
+        self.charsPerWidth = self.padW // self.pixelsPerLetter
+        self.linesPerPage = (self.padH // ((letterHeight) + lineSpacing)) - 5
 
 
     # assume monospaced font for now
@@ -163,12 +164,12 @@ class Text(Env):
         if event.action == input.MouseDown:
             if self.page == None:
                 self.page = 0
-                self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+                self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
             elif self.bounds.contains(pt):
                 highlightFunc, word = self.findWord(pt)
                 if highlightFunc != None:
                     self.events.send(Broadcast("DEFINE", word))
-                    self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+                    self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
                     self.drawImg(highlightFunc)
 
 
@@ -180,11 +181,11 @@ class Text(Env):
         if keyEvent.key == input.ArrowDown and keyEvent.action == 1:
             if self.page < self.numPages-1:
                 self.page += 1
-            self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+            self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
         elif keyEvent.key == input.ArrowUp and keyEvent.action == 1:
             if self.page > 0:
                 self.page -= 1
-            self.drawImg(self.setText(self.plainText[self.page*MAXLINES:((self.page*MAXLINES)+MAXLINES)]))
+            self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
 
 
     def resize(self):
@@ -196,4 +197,4 @@ class Text(Env):
         self.setFont('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf', fontSize)
         text, _ = loadFile('alice.txt')
         self.formatText(text)
-        self.numPages = int(math.ceil(len(self.plainText) / MAXLINES))
+        self.numPages = int(math.ceil(len(self.plainText) / self.linesPerPage))
