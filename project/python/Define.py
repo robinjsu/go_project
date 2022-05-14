@@ -8,6 +8,7 @@ from pyGui.utils import *
 from const import *
 
 fontSize = 20
+lineHeight = 5
 color = Colors()
 class Define(Env):
     word: str
@@ -43,7 +44,6 @@ class Define(Env):
         self.pixelsPerChar = self.font.getlength('A')
         self.charsPerWidth = self.padW // math.ceil(self.pixelsPerChar)
 
-
     def setWordHeader(self):
         w = self.word.rstrip(trailing_chars).lstrip(trailing_chars)
         chars = len(w)
@@ -51,7 +51,7 @@ class Define(Env):
         spacingW = (self.charsPerWidth - chars) // 2
         anchorX = spacingW * self.pixelsPerChar
         anchorY = (50 - textSz[1]) // 2
-        anchor = int(self.anchor.x+ anchorX), int(self.anchor.y + anchorY)
+        anchor = int(self.anchor.x + anchorX), int(self.anchor.y + anchorY)
         textSz = self.font.getsize(w)
         def drawHeader(baseImg: Image.Image) -> Image.Image:
             bg = Image.new("RGBA", (self.padW, 50), color.paleBlue)
@@ -68,18 +68,47 @@ class Define(Env):
             baseImg.alpha_composite(textImg, anchor)
             return baseImg
         return drawHeader
+    
+    def setWordDef(self, partOfSpeech: str, defn: str):
+        partFormat = f'[{partOfSpeech}]'
+        fmtDef = formatText(defn, self.charsPerWidth)
+        anchor = Point(self.anchor.x, int(self.anchor.y + (self.padH * .2)))
+        textHt = self.font.getsize(partOfSpeech)[1] + lineHeight
+        sectionHt = textHt * len(fmtDef)
+        def drawDef(base: Image.Image) -> Image.Image:
+            # bg = Image.new("RGBA", (self.padW, self.padH - 50), color.white)
+            bg = Image.new("RGBA", (self.padW, sectionHt), color.white)
+            drawDef = ImageDraw.ImageDraw(bg)
+            lineAnchor = Point(0,0)
+            drawDef.text((lineAnchor.x, lineAnchor.y), partFormat, color.black, self.font, anchor='la')
+            lineAnchor.add(0, textHt)
+            for l in range(len(fmtDef)):
+                print(fmtDef[l])
+                drawDef.text(
+                    (lineAnchor.x, lineAnchor.y),
+                    fmtDef[l],
+                    color.black,
+                    self.font,
+                    anchor='la'
+                )
+                lineAnchor.add(0, textHt)
+            base.alpha_composite(bg, (anchor.x, anchor.y))
+            return base
+        return drawDef
 
-
+    def setDefSection(self, definitions):
+        def drawSection(base: Image.Image) -> Image.Image:
+            bg = Image.new("RGBA", (self.padW, int(self.padH * 0.8)))
 
     def onBroadcast(self, event: Broadcast):
         if event.event == "DEFINE":
             self.word = event.obj.text
-            # defs = event.obj.getDefinitions()
+            defs = event.obj.getDefinitions()
             self.drawImg(self.setWordHeader())
-            # if defs == []:
-            #     print('no definitions retrieved')
-            # else:
-            #     for d in defs:
+            if defs == []:
+                print('no definitions retrieved')
+            else:
+                self.drawImg(self.setWordDef(defs[0][0], defs[0][1]))
 
             
     
