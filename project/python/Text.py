@@ -12,7 +12,7 @@ TODO:
  - add hint for paging as way to read
 '''
 
-lineSpacing = 4
+lineSpacing = 10
 fontSize = 24
 input = InputEvent
 color = Colors()
@@ -53,7 +53,7 @@ class Text(Env):
         self.font = loadFont(ttf, sz)
         self.pixelsPerLetter, letterHeight = self.font.getsize('A')
         self.charsPerWidth = self.padW // self.pixelsPerLetter
-        self.linesPerPage = (self.padH // ((letterHeight) + lineSpacing)) - 5
+        self.linesPerPage = int(math.floor(self.padH / (letterHeight + lineSpacing)))
 
 
     # assume monospaced font for now
