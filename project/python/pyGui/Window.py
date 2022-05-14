@@ -8,6 +8,9 @@ from .Event import *
 from .Env import Env
 from .utils import Box, Point
 
+'''
+TODO: figure out pixels vs screen coordinates, reread tutorial!
+'''
 class Options(NamedTuple):  
     title: str
     width: int
@@ -30,11 +33,14 @@ class Window(Env):
     def __init__(self, options: Options):
         super().__init__(True)
         assert (self.events is not None) and (self.draw is not None), f'events and draw channels not properly initialized'
-        self.win = glfw._GLFWwindow()
+        # self.win = glfw.create_window()
         self.options = options
-        self.image = Image.new("RGBA", (self.options.width, self.options.height), (255,255,255,255))
-        self.setMousePos(0,0)
         self.initGLFW()
+        # get image size in pixels
+        width, height = glfw.get_framebuffer_size(self.win)
+        self.image = Image.new("RGBA", (width, height), (255,255,255,255))
+        self.setMousePos(0,0)
+        
         self.handleDrawCommands()
     
     def createLock(self):
@@ -79,7 +85,8 @@ class Window(Env):
             glfw.window_hint(glfw.RESIZABLE, glfw.TRUE)
         else:
             glfw.window_hint(glfw.RESIZABLE, glfw.FALSE)
-        glfw.window_hint(glfw.MAXIMIZED, glfw.TRUE)
+
+        # glfw.window_hint(glfw.MAXIMIZED, glfw.TRUE)
         self.win = glfw.create_window(
             self.options.width, 
             self.options.height, 
@@ -141,18 +148,18 @@ class Window(Env):
         if not self.win:
             print("glfw context not created")
             return
-        
         self.image = img
-
+        # self.
         width, height = glfw.get_framebuffer_size(self.win)
-        gl.glViewport(0,0,width, height)
+        gl.glViewport(0, 0, width, height)
         gl.glRasterPos2d(-1,1)
         gl.glPixelZoom(1, -1)
         gl.glDrawPixels(
-            width, 
-            height, 
+            img.width, 
+            img.height, 
             gl.GL_RGBA, 
-            gl.GL_UNSIGNED_BYTE, img.tobytes()
+            gl.GL_UNSIGNED_BYTE, 
+            img.tobytes()
         )
         gl.glFlush()
         return
