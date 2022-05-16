@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/draw"
+	"strings"
 
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
@@ -26,19 +28,39 @@ func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) f
 	return load
 }
 
+func findWord(face font.Face, line imageObj, lineRct image.Rectangle, p image.Point) (image.Rectangle, string) {
+	anchor := image.Point(lineRct.Min)
+	words := strings.Split(line.text.txt, " ")
+	for _, w := range words {
+		fmt.Println(anchor)
+		_, adv := font.BoundString(face, w)
+		wordR := image.Rect(anchor.X, anchor.Y, anchor.X+adv.Ceil(), anchor.Y+4)
+		if p.In(wordR) {
+			fmt.Printf("found word: %v", wordR)
+			return wordR, w
+		}
+		anchor = anchor.Add(image.Pt(wordR.Dx(), 0))
+	}
+	return image.Rect(0, 0, 0, 0), ""
+}
+
 func highlightLine(face font.Face, images []imageObj, p image.Point, words chan<- string) func(draw.Image) image.Rectangle {
 	var line image.Rectangle
 	load := func(drw draw.Image) image.Rectangle {
-		var txt string
+		// var txt string
+		var wrd string
+		var wordBounds image.Rectangle
 		for _, ln := range images {
 			rct := ln.placement.Bounds()
 			if p.In(rct) {
-				txt = ln.text.txt
-				draw.Draw(drw, rct, &image.Uniform{HIGHLIGHT_GRAY}, image.ZP, draw.Over)
+				// txt = ln.text.txt
+				fmt.Println(rct)
+				wordBounds, wrd = findWord(face, ln, rct, p)
+				draw.Draw(drw, wordBounds, &image.Uniform{HIGHLIGHT_GRAY}, image.ZP, draw.Over)
 			}
 		}
 		// send words to Search component
-		words <- txt
+		words <- wrd
 		return line
 	}
 	return load
