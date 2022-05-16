@@ -68,47 +68,35 @@ class Define(Env):
             baseImg.alpha_composite(textImg, anchor)
             return baseImg
         return drawHeader
-    
-    def setWordDef(self, partOfSpeech: str, defn: str):
-        partFormat = f'[{partOfSpeech}]'
-        fmtDef = formatText(defn, self.charsPerWidth)
-        anchor = Point(self.anchor.x, int(self.anchor.y + (self.padH * .2)))
-        textHt = self.font.getsize(partOfSpeech)[1] + lineHeight
-        sectionHt = textHt * len(fmtDef)
-        def drawDef(base: Image.Image) -> Image.Image:
-            # bg = Image.new("RGBA", (self.padW, self.padH - 50), color.white)
-            bg = Image.new("RGBA", (self.padW, sectionHt), color.white)
-            drawDef = ImageDraw.ImageDraw(bg)
-            lineAnchor = Point(0,0)
-            drawDef.text((lineAnchor.x, lineAnchor.y), partFormat, color.black, self.font, anchor='la')
-            lineAnchor.add(0, textHt)
-            for l in range(len(fmtDef)):
-                print(fmtDef[l])
-                drawDef.text(
-                    (lineAnchor.x, lineAnchor.y),
-                    fmtDef[l],
-                    color.black,
-                    self.font,
-                    anchor='la'
-                )
-                lineAnchor.add(0, textHt)
-            base.alpha_composite(bg, (anchor.x, anchor.y))
-            return base
-        return drawDef
 
     def setDefSection(self, definitions):
         def drawSection(base: Image.Image) -> Image.Image:
-            bg = Image.new("RGBA", (self.padW, int(self.padH * 0.8)))
+            anchor = Point(MARGIN,0)
+            bg = Image.new("RGBA", (self.padW, int(self.padH * 0.8)), color.lightBlue)
+            drawCtx = ImageDraw.ImageDraw(bg)
+            for defn in definitions:
+                formatted = [f'[{defn[0]}]'] + formatText(defn[1], self.charsPerWidth)
+                joinedStr = '\n'.join(formatted)
+                drawCtx.multiline_text(
+                    (anchor.x, anchor.y), 
+                    joinedStr, 
+                    color.black, 
+                    self.font, 
+                    anchor='la', 
+                    spacing=lineHeight
+                )
+                bbx = drawCtx.multiline_textbbox((anchor.x, anchor.y), joinedStr, self.font, anchor='la', spacing=lineHeight)
+                anchor = Point(MARGIN, bbx[3]+ lineHeight)
+            base.alpha_composite(bg, (self.anchor.x, int(self.padH * 0.2)))
+            return base
+        return drawSection
 
     def onBroadcast(self, event: Broadcast):
         if event.event == "DEFINE":
             self.word = event.obj.text
             defs = event.obj.getDefinitions()
             self.drawImg(self.setWordHeader())
-            if defs == []:
+            if defs == [] or defs is None:
                 print('no definitions retrieved')
             else:
-                self.drawImg(self.setWordDef(defs[0][0], defs[0][1]))
-
-            
-    
+                self.drawImg(self.setDefSection(defs))
