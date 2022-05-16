@@ -1,7 +1,6 @@
-from cgitb import text
 from typing import List
-from PIL import Image, ImageDraw, ImageFont, ImageOps
-import os, requests, random as rand
+from PIL import Image, ImageDraw, ImageFont
+import random as rand
 
 from pyGui import *
 from pyGui.utils import *
@@ -9,6 +8,7 @@ from const import *
 
 fontSize = 16
 lineHeight = 5
+broadcast = Event.BroadcastType()
 color = Colors()
 class Define(Env):
     word: str
@@ -25,8 +25,8 @@ class Define(Env):
     charsPerWidth: int
     plainText: List[str]
 
-    def __init__(self, box: Box, id=rand.randint(0,100)):
-        super().__init__(id=id)
+    def __init__(self, box: Box, id=rand.randint(0,100), name=''):
+        super().__init__(id=id, threadName=name)
         self.padding = MARGIN
         self.bounds = box
         self.width = abs(self.bounds.x1 - self.bounds.x0)
@@ -68,9 +68,9 @@ class Define(Env):
 
     def setDefSection(self, definitions):
         def drawSection(base: Image.Image) -> Image.Image:
-            anchor = Point(MARGIN,MARGIN)
             bg = Image.new("RGBA", (self.padW, int(self.padH - (self.pixelsPerChar.y * 3))), color.lightBlue)
             drawCtx = ImageDraw.ImageDraw(bg)
+            anchor = Point(MARGIN,MARGIN)
             for defn in definitions:
                 formatted = [f'[{defn[0]}]'] + formatText(defn[1], self.charsPerWidth)
                 joinedStr = '\n'.join(formatted)
@@ -89,7 +89,7 @@ class Define(Env):
         return drawSection
 
     def onBroadcast(self, event: Broadcast):
-        if event.event == "DEFINE":
+        if event.event == broadcast.DEFINE:
             self.word = event.obj.text
             defs = event.obj.getDefinitions()
             self.drawImg(self.setWordHeader())

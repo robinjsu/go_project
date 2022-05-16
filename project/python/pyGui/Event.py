@@ -1,23 +1,20 @@
+from collections import namedtuple
+from tokenize import Name
 import glfw
-from typing import Any, NamedTuple, Callable
+from typing import Any, NamedTuple
 from PIL.ImageDraw import *
-    
-class Event(NamedTuple):
-    MouseDown:  int
-    MouseUp:    int
-    ArrowUp:    int
-    ArrowDown:  int
-    ArrowLeft:  int
-    ArrowRight: int
 
-InputEvent = Event(
-    int(glfw.PRESS),
-    int(glfw.RELEASE),
-    int(glfw.KEY_UP),
-    int(glfw.KEY_DOWN),
-    int(glfw.KEY_LEFT),
-    int(glfw.KEY_RIGHT)
-)
+class InputType(NamedTuple):
+    MouseDown = int(glfw.PRESS)
+    MouseUp = int(glfw.RELEASE)
+    ArrowUp = int(glfw.KEY_UP)
+    ArrowDown = int(glfw.KEY_DOWN)
+    ArrowLeft = int(glfw.KEY_LEFT)
+    ArrowRight = int(glfw.KEY_RIGHT)
+
+class BroadcastType(NamedTuple):
+    DEFINE = 0
+    SAVE = 1
 
 class MouseEvent(NamedTuple):
     button: int
@@ -30,6 +27,6 @@ class KeyEvent(NamedTuple):
     action: int
 
 class Broadcast(NamedTuple):
-    event: Any
-    message: str
+    event: BroadcastType
+    obj: Any
 ## TODO: can maybe define a few subtypes of Broadcast? or leave open to implementation

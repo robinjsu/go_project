@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io, os, math, random as rand
 
 from pyGui import *
+# from pyGui.Event import BroadcastType
 from pyGui.utils import *
 from const import *
 
@@ -14,7 +15,8 @@ TODO:
 
 lineSpacing = 10
 fontSize = 24
-input = InputEvent
+input = Event.InputType()
+broadcast = Event.BroadcastType()
 color = Colors()
 class Text(Env):
     bounds: Box
@@ -33,10 +35,10 @@ class Text(Env):
     numPages: int
     anchor = tuple
 
-    def __init__(self, box: tuple, id=rand.randint(0,100)):
-        super().__init__(id=id)
+    def __init__(self, box: Box, id=rand.randint(0,100), name=''):
+        super().__init__(id=id, threadName=name)
         self.padding = MARGIN
-        self.bounds = Box(box[0], box[1], int(box[2]*.75), int(box[3]*.75))
+        self.bounds = box
         self.width = abs(self.bounds.x1 - self.bounds.x0)
         self.height = abs(self.bounds.y1 - self.bounds.y0)
         self.padW = self.width - (self.padding * 2)
@@ -54,25 +56,6 @@ class Text(Env):
         self.pixelsPerLetter, letterHeight = self.font.getsize('A')
         self.charsPerWidth = self.padW // self.pixelsPerLetter
         self.linesPerPage = int(math.floor(self.padH / (letterHeight + lineSpacing)))
-
-
-    # assume monospaced font for now
-    def formatText(self, text: str):
-        '''
-        Format a body of text into lines that won't exceed the calculated width of the component.
-        :param text: a string representing entire body of text to display
-        '''
-        self.plainText = []
-        idx = makeLineBreak(text[:self.charsPerWidth+1]) + 1
-        line = text[:idx].rstrip(' \n')
-        while line != '':
-            self.plainText.append(line)
-            if len(text) > idx - 1:
-                text = text[idx:]
-            idx = makeLineBreak(text[:self.charsPerWidth+1]) + 1
-            line = text[:idx].rstrip(' \n')
-
-        return self.plainText
 
 
     def setTextPos(self, line: str, anchor: Point):
@@ -162,13 +145,10 @@ class Text(Env):
         '''
         pt = Point(event.xpos, event.ypos)
         if event.action == input.MouseDown:
-            if self.page == None:
-                self.page = 0
-                self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
-            elif self.bounds.contains(pt):
+            if self.bounds.contains(pt):
                 highlightFunc, word = self.findWord(pt)
                 if highlightFunc != None:
-                    self.events.send(Broadcast("DEFINE", word))
+                    self.events.send(Broadcast(broadcast.DEFINE, word))
                     self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
                     self.drawImg(highlightFunc)
 
@@ -194,7 +174,9 @@ class Text(Env):
         
     
     def init(self):
+        self.page = 0
         self.setFont('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf', fontSize)
         text, _ = loadFile('alice.txt')
-        self.formatText(text)
+        self.plainText = formatText(text, self.charsPerWidth)
         self.numPages = int(math.ceil(len(self.plainText) / self.linesPerPage))
+        self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
