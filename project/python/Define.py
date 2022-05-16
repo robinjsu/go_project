@@ -40,7 +40,6 @@ class Define(Env):
 
     def setFont(self, ttf, sz):
         self.font = loadFont(ttf, sz)
-        # self.headerFont = loadFont(ttf, int(sz*1.5))
         self.pixelsPerChar = getFontSize(self.font)
         self.charsPerWidth = self.padW // math.ceil(self.pixelsPerChar.x)
 
@@ -51,7 +50,6 @@ class Define(Env):
         anchorX = spacingW * self.pixelsPerChar.x
         anchorY = self.pixelsPerChar.y
         anchor = int(self.anchor.x + anchorX), int(self.anchor.y + anchorY)
-        # textSz = self.font.getsize(w)
         def drawHeader(baseImg: Image.Image) -> Image.Image:
             bg = Image.new("RGBA", (self.padW, self.pixelsPerChar.y * 3), color.paleBlue)
             textImg = Image.new("RGBA", self.font.getsize(w), color.paleBlue)
