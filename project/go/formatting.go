@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"image"
 	"io"
 	"os"
 	"strings"
@@ -30,14 +31,15 @@ func NewContent() *Content {
 	return &c
 }
 
-func (c *Content) parseText(filename string, face font.Face) (int, error) {
+func (c *Content) parseText(filename string, face font.Face, areaR *image.Rectangle) (int, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("Error reading file! %v\n", err)
 		return -1, err
 	}
 	c.fullText = content
-	c.wrapped, c.formatted = formatLines(c.fullText, MAXLINE_TEXT)
+	maxWidth := calculateLineWidth(face, areaR.Dx())
+	c.wrapped, c.formatted = formatLines(c.fullText, maxWidth)
 
 	return 0, nil
 }
@@ -117,9 +119,10 @@ func splitStr(lookup string) []string {
 	splitWords := strings.Split(lookup, " ")
 	for _, wd := range splitWords {
 		word := strings.Trim(wd, " ,.!?';:“”’\"()")
-		if !isCommon(word) {
-			list = append(list, word)
-		}
+		// if !isCommon(word) {
+		// 	list = append(list, word)
+		// }
+		list = append(list, word)
 	}
 	return list
 }
@@ -171,8 +174,9 @@ func wrapDef(s string, wrapIdx int) []string {
 			lines = append(lines, s)
 			break
 		} else {
-			lines = append(lines, s[:wrapIdx])
-			s = s[wrapIdx:]
+			idx := strings.LastIndexAny(s[:wrapIdx], " ")
+			lines = append(lines, s[:idx])
+			s = s[idx:]
 		}
 	}
 	return lines

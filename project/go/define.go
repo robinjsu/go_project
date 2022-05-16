@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"strings"
 
 	"github.com/faiface/gui"
 	"golang.org/x/image/font"
@@ -32,12 +33,9 @@ func displayDefs(word Word, face font.Face) [][]imageObj {
 
 func drawDefs(word string, faces map[string]font.Face, images [][]imageObj, bounds *image.Rectangle) func(draw.Image) image.Rectangle {
 	newR := makeInsetR(*bounds, MARGIN)
-	headerImg, _ := drawText(word, faces["bold"])
-	headerR := makeHeaderLeftR(newR, headerImg, MARGIN)
 	y := 0
 	display := func(drw draw.Image) image.Rectangle {
 		draw.Draw(drw, newR, image.White, newR.Min, draw.Src)
-		draw.Draw(drw, headerR, headerImg, image.ZP, draw.Over)
 		for _, def := range images {
 			for _, line := range def {
 				newPlacement := line.placement
@@ -51,18 +49,19 @@ func drawDefs(word string, faces map[string]font.Face, images [][]imageObj, boun
 	return display
 }
 
-func Define(env gui.Env, fontFaces map[string]font.Face, word <-chan string, save chan<- Word) {
+func Define(env gui.Env, fontFaces map[string]font.Face, define <-chan string, save chan<- Word) {
 	for {
 		select {
-		case lookup := <-word:
-			defs, err := getWord(lookup)
+		case word := <-define:
+			word = strings.Trim(word, " ,.!?';:“”’\"()")
+			defs, err := getWord(word)
 			if err != nil {
 				fmt.Println(err)
 			}
 			if len(defs.Def) == 0 {
 				defs = Word{Word: "definition unavailable"}
 			} else {
-				defs.formatDefs(MAXLINE_DEF)
+				defs.formatDefs(fontFaces["regular"], &defCorner)
 				save <- defs
 			}
 			images := displayDefs(defs, fontFaces["regular"])

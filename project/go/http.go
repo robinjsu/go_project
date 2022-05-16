@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
 	"net/http"
 	"os"
 	"strings"
+
+	"golang.org/x/image/font"
 )
 
 type Word struct {
@@ -14,10 +17,10 @@ type Word struct {
 	Def  []Definition `json:"definitions"`
 }
 
-func (word *Word) formatDefs(maxLineW int) Word {
+func (word *Word) formatDefs(face font.Face, areaR *image.Rectangle) Word {
 	for i, d := range word.Def {
-		s := fmt.Sprintf(" - (%s) %s", d.PartOfSpeech, d.Definition)
-		fmtDefs := wrapDef(s, maxLineW)
+		s := fmt.Sprintf("[%s] %s", d.PartOfSpeech, d.Definition)
+		fmtDefs := wrapDef(s, calculateLineWidth(face, areaR.Dx()))
 		word.Def[i].Wrapped = fmtDefs
 	}
 	return *word

@@ -29,7 +29,7 @@ func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) f
 }
 
 func findWord(face font.Face, line imageObj, p image.Point) (image.Rectangle, string) {
-	anchor := image.Pt(line.placement.Min.X+line.text.bounds.Min.X.Ceil(), line.placement.Min.Y+line.text.bounds.Min.Y.Floor())
+	anchor := image.Pt(line.placement.Min.X+line.text.bounds.Min.X.Floor(), line.placement.Min.Y+line.text.bounds.Min.Y.Floor())
 	words := strings.Split(line.text.txt, " ")
 	for _, w := range words {
 		_, adv := font.BoundString(face, w)
@@ -44,7 +44,7 @@ func findWord(face font.Face, line imageObj, p image.Point) (image.Rectangle, st
 	return image.Rect(0, 0, 0, 0), ""
 }
 
-func highlightLine(face font.Face, images []imageObj, p image.Point, words chan<- string) func(draw.Image) image.Rectangle {
+func highlightWord(face font.Face, images []imageObj, p image.Point, words chan<- string) func(draw.Image) image.Rectangle {
 	var line image.Rectangle
 	load := func(drw draw.Image) image.Rectangle {
 		// var txt string
@@ -70,7 +70,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 	var pages [][]string
 	var p image.Point
 
-	_, err := cont.parseText(textFile, fontFaces["regular"])
+	_, err := cont.parseText(textFile, fontFaces["regular"], &textBounds)
 	if err != nil {
 		error.Error(err)
 	}
@@ -93,7 +93,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 				p = image.Pt(e.X, e.Y)
 				if p.In(textBounds) {
 					env.Draw() <- drawTextLines(textLines, fontFaces["regular"], &textBounds)
-					loadText = highlightLine(fontFaces["bold"], textLines, p, words)
+					loadText = highlightWord(fontFaces["bold"], textLines, p, words)
 					env.Draw() <- loadText
 				}
 			case win.KbDown:

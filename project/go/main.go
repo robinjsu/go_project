@@ -25,7 +25,7 @@ func run() {
 	// each component is muxed from main, occupying its own thread
 	go Display(mux.MakeEnv())
 	go Text(mux.MakeEnv(), "./alice.txt", fontFaces, words)
-	go Search(mux.MakeEnv(), fontFaces, words, define)
+	go Header(mux.MakeEnv(), fontFaces, words, define)
 	go Define(mux.MakeEnv(), fontFaces, define, save)
 	go WordList(mux.MakeEnv(), save, "test")
 
