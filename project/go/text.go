@@ -28,18 +28,18 @@ func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) f
 	return load
 }
 
-func findWord(face font.Face, line imageObj, lineRct image.Rectangle, p image.Point) (image.Rectangle, string) {
-	anchor := image.Point(lineRct.Min)
+func findWord(face font.Face, line imageObj, p image.Point) (image.Rectangle, string) {
+	anchor := image.Pt(line.placement.Min.X+line.text.bounds.Min.X.Ceil(), line.placement.Min.Y+line.text.bounds.Min.Y.Floor())
 	words := strings.Split(line.text.txt, " ")
 	for _, w := range words {
-		fmt.Println(anchor)
 		_, adv := font.BoundString(face, w)
-		wordR := image.Rect(anchor.X, anchor.Y, anchor.X+adv.Ceil(), anchor.Y+4)
+		wordR := image.Rect(anchor.X, anchor.Y, anchor.X+adv.Floor(), anchor.Y+line.text.bounds.Max.Y.Ceil())
 		if p.In(wordR) {
-			fmt.Printf("found word: %v", wordR)
+			// fmt.Printf("found word: %v", wordR)
 			return wordR, w
 		}
-		anchor = anchor.Add(image.Pt(wordR.Dx(), 0))
+		ln := fmt.Sprintf("%s ", w)
+		anchor = anchor.Add(image.Pt(font.MeasureString(face, ln).Round(), 0))
 	}
 	return image.Rect(0, 0, 0, 0), ""
 }
@@ -53,9 +53,7 @@ func highlightLine(face font.Face, images []imageObj, p image.Point, words chan<
 		for _, ln := range images {
 			rct := ln.placement.Bounds()
 			if p.In(rct) {
-				// txt = ln.text.txt
-				fmt.Println(rct)
-				wordBounds, wrd = findWord(face, ln, rct, p)
+				wordBounds, wrd = findWord(face, ln, p)
 				draw.Draw(drw, wordBounds, &image.Uniform{HIGHLIGHT_GRAY}, image.ZP, draw.Over)
 			}
 		}
