@@ -7,7 +7,7 @@ from pyGui import *
 from pyGui.utils import *
 from const import *
 
-fontSize = 20
+fontSize = 16
 lineHeight = 5
 color = Colors()
 class Define(Env):
@@ -21,7 +21,7 @@ class Define(Env):
     padW: int
     padH: int
     anchor: Point
-    pixelsPerChar: float
+    pixelsPerChar: Point
     charsPerWidth: int
     plainText: List[str]
 
@@ -41,21 +41,20 @@ class Define(Env):
     def setFont(self, ttf, sz):
         self.font = loadFont(ttf, sz)
         # self.headerFont = loadFont(ttf, int(sz*1.5))
-        self.pixelsPerChar = self.font.getlength('A')
-        self.charsPerWidth = self.padW // math.ceil(self.pixelsPerChar)
+        self.pixelsPerChar = getFontSize(self.font)
+        self.charsPerWidth = self.padW // math.ceil(self.pixelsPerChar.x)
 
     def setWordHeader(self):
         w = self.word.rstrip(trailing_chars).lstrip(trailing_chars)
         chars = len(w)
-        textSz = self.font.getsize(w)
         spacingW = (self.charsPerWidth - chars) // 2
-        anchorX = spacingW * self.pixelsPerChar
-        anchorY = (50 - textSz[1]) // 2
+        anchorX = spacingW * self.pixelsPerChar.x
+        anchorY = self.pixelsPerChar.y
         anchor = int(self.anchor.x + anchorX), int(self.anchor.y + anchorY)
-        textSz = self.font.getsize(w)
+        # textSz = self.font.getsize(w)
         def drawHeader(baseImg: Image.Image) -> Image.Image:
-            bg = Image.new("RGBA", (self.padW, 50), color.paleBlue)
-            textImg = Image.new("RGBA", textSz, color.paleBlue)
+            bg = Image.new("RGBA", (self.padW, self.pixelsPerChar.y * 3), color.paleBlue)
+            textImg = Image.new("RGBA", self.font.getsize(w), color.paleBlue)
             context = ImageDraw.ImageDraw(textImg)
             context.text(
                 (0, 0),
@@ -71,8 +70,8 @@ class Define(Env):
 
     def setDefSection(self, definitions):
         def drawSection(base: Image.Image) -> Image.Image:
-            anchor = Point(MARGIN,0)
-            bg = Image.new("RGBA", (self.padW, int(self.padH * 0.8)), color.lightBlue)
+            anchor = Point(MARGIN,MARGIN)
+            bg = Image.new("RGBA", (self.padW, int(self.padH - (self.pixelsPerChar.y * 3))), color.lightBlue)
             drawCtx = ImageDraw.ImageDraw(bg)
             for defn in definitions:
                 formatted = [f'[{defn[0]}]'] + formatText(defn[1], self.charsPerWidth)
@@ -87,7 +86,7 @@ class Define(Env):
                 )
                 bbx = drawCtx.multiline_textbbox((anchor.x, anchor.y), joinedStr, self.font, anchor='la', spacing=lineHeight)
                 anchor = Point(MARGIN, bbx[3]+ lineHeight)
-            base.alpha_composite(bg, (self.anchor.x, int(self.padH * 0.2)))
+            base.alpha_composite(bg, (self.anchor.x, int(self.anchor.y + (self.pixelsPerChar.y * 3))))
             return base
         return drawSection
 
