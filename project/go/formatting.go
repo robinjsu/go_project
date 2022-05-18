@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"image"
 	"io"
 	"os"
@@ -34,17 +33,22 @@ func NewContent() *Content {
 func (c *Content) parseText(filename string, face font.Face, areaR *image.Rectangle) (int, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("Error reading file! %v\n", err)
-		return -1, err
+		return -1, FileError{
+			filename: filename,
+			err:      err,
+		}
 	}
 	c.fullText = content
 	maxWidth := calculateLineWidth(face, areaR.Dx())
-	c.wrapped, c.formatted = formatLines(c.fullText, maxWidth)
+	c.wrapped, c.formatted, err = formatLines(c.fullText, maxWidth)
+	if err != nil {
+		return -1, err
+	}
 
 	return 0, nil
 }
 
-func formatLines(fullText []byte, maxLineW int) ([]string, []Formatted) {
+func formatLines(fullText []byte, maxLineW int) ([]string, []Formatted, error) {
 	var lines []string
 	var fmtLines []Formatted
 	var p []byte
@@ -60,13 +64,13 @@ func formatLines(fullText []byte, maxLineW int) ([]string, []Formatted) {
 		lookAhead, err = buffer.Peek(maxLineW + 1)
 	}
 	if err != nil {
-		panic(err)
+		return nil, nil, ReadError{err}
 	}
 	idx = findWrapIdx(lookAhead, maxLineW)
 	p = make([]byte, idx, idx)
 	n, err := buffer.Read(p)
 	if err != nil {
-		panic(err)
+		return nil, nil, ReadError{err}
 	}
 	ptrim := strings.TrimSuffix(string(p), "\n")
 	fmtLines = append(fmtLines, Formatted{txt: ptrim})
@@ -80,20 +84,20 @@ func formatLines(fullText []byte, maxLineW int) ([]string, []Formatted) {
 			lookAhead, err = buffer.Peek(maxLineW + 1)
 		}
 		if err != nil && err != io.EOF {
-			panic(err)
+			return nil, nil, ReadError{err}
 		}
 		idx = findWrapIdx(lookAhead, maxLineW)
 		p = make([]byte, idx, idx)
 		n, err = buffer.Read(p)
 		if err != nil && err != io.EOF {
-			panic(err)
+			return nil, nil, ReadError{err}
 		}
 		ptrim := strings.TrimSuffix(string(p), "\n")
 		fmtLines = append(fmtLines, Formatted{txt: ptrim})
 		lines = append(lines, ptrim)
 	}
 
-	return lines, fmtLines
+	return lines, fmtLines, nil
 }
 
 func findWrapIdx(b []byte, maxWidth int) int {
@@ -130,24 +134,29 @@ func splitStr(lookup string) []string {
 func parseFont(file string) (*tt.Font, error) {
 	ttfFile, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return nil, FileError{
+			filename: file,
+			err:      err,
+		}
 	}
 	ttf, err := tt.Parse(ttfFile)
 	if err != nil {
-		return nil, err
+		return nil, FileError{
+			filename: "ttf file bytes",
+			err:      err,
+		}
 	}
 
 	return ttf, nil
 }
 
-func loadFonts(fontSize float64, fonts ...string) map[string]font.Face {
+func loadFonts(fontSize float64, fonts ...string) (map[string]font.Face, error) {
 	fontFaces := make(map[string]font.Face)
 	for _, f := range fonts {
 		// parse bytes and return a pointer to a Font type object
 		fnt, err := parseFont(f)
 		if err != nil {
-			error.Error(err)
-			panic("panic! TTF file not properly loaded")
+			return nil, err
 		}
 		// create face, which provides the `glyph mask images`
 		face := tt.NewFace(fnt, &tt.Options{
@@ -161,7 +170,7 @@ func loadFonts(fontSize float64, fonts ...string) map[string]font.Face {
 			fontFaces["bold"] = face
 		}
 	}
-	return fontFaces
+	return fontFaces, nil
 }
 
 func wrapDef(s string, wrapIdx int) []string {
@@ -204,4 +213,9 @@ func makePages(content []string, linesPerPage int) [][]string {
 		contentCopy = contentCopy[linesPerPage:]
 	}
 	return pages
+}
+
+func calculateLineWidth(face font.Face, contentArea int) int {
+	charWidth := font.MeasureString(face, "A")
+	return int(contentArea / charWidth.Ceil())
 }

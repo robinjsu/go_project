@@ -84,8 +84,3 @@ func drawBtn(text string, face font.Face, r image.Rectangle, loc image.Point) dr
 
 	return txt.Dst
 }
-
-func calculateLineWidth(face font.Face, contentArea int) int {
-	charWidth := font.MeasureString(face, "A")
-	return int(contentArea / charWidth.Ceil())
-}

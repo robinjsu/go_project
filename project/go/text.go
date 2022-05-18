@@ -65,7 +65,7 @@ func highlightWord(face font.Face, images []imageObj, p image.Point, words chan<
 	return load
 }
 
-func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string, filepath <-chan string, load chan<- string) {
+func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string, filepath <-chan string, load chan<- bool) {
 	var cont *Content = NewContent()
 	var textLines []imageObj
 	var pages [][]string
@@ -79,7 +79,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 			fmt.Println(file)
 			_, err := cont.parseText(textFile, fontFaces["regular"], &textBounds)
 			if err != nil {
-				error.Error(err)
+				panic(err.Error())
 			}
 			lineHeight = fontFaces["regular"].Metrics().Height.Ceil() * 2
 			pages = makePages(cont.wrapped, LINES_PER_PAGE)
@@ -87,7 +87,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 			loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
 			env.Draw() <- loadText
 			fileLoaded = true
-			load <- "ok"
+			load <- fileLoaded
 		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())

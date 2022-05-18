@@ -7,7 +7,7 @@ import (
 	"github.com/faiface/gui"
 )
 
-func Display(env gui.Env, load <-chan string) {
+func Display(env gui.Env, load <-chan bool) {
 
 	loadPage := func(drw draw.Image) image.Rectangle {
 		sideBar := image.Rect(MIN_X_SEARCH, 0, MAXWIDTH, MAXHEIGHT)
@@ -18,8 +18,8 @@ func Display(env gui.Env, load <-chan string) {
 
 	for {
 		select {
-		case f := <-load:
-			if f == "ok" {
+		case ready := <-load:
+			if ready {
 				env.Draw() <- loadPage
 			}
 		case _, ok := <-env.Events():

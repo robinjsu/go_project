@@ -8,8 +8,6 @@ import (
 	"golang.org/x/image/font"
 )
 
-// TODO: a bit more string clean-up to do
-
 func drawHeader(images []imageObj, bounds *image.Rectangle) func(draw.Image) image.Rectangle {
 	searchBar := func(drw draw.Image) image.Rectangle {
 		newR := makeInsetR(*bounds, MARGIN)

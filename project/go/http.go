@@ -46,22 +46,34 @@ type Definition struct {
 func getDef(lookup string) (Word, error) {
 	DICT_KEY := os.Getenv("DICT_API_KEY")
 	if DICT_KEY == "" {
-		return Word{}, errors.New("no api key provided")
+		return Word{}, errors.New("API key missing")
 	}
 
 	url := fmt.Sprintf("https://wordsapiv1.p.rapidapi.com/words/%s/definitions", lookup)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return Word{}, err
+		return Word{}, HttpError{
+			method: "NewRequest",
+			url:    url,
+			err:    err,
+		}
 	}
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("X-RapidAPI-Host", "wordsapiv1.p.rapidapi.com")
 	req.Header.Add("X-RapidAPI-Key", DICT_KEY)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return Word{}, err
+		return Word{}, HttpError{
+			method: "GET",
+			url:    url,
+			err:    err,
+		}
 	} else if res.StatusCode != 200 {
-		return Word{}, errors.New("received a non-200 status code")
+		return Word{}, HttpError{
+			method: "Response",
+			url:    url,
+			err:    errors.New(fmt.Sprintf("received non-200 status code: %v", res.StatusCode)),
+		}
 	}
 	defer res.Body.Close()
 
@@ -69,7 +81,7 @@ func getDef(lookup string) (Word, error) {
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&worddef)
 	if err != nil {
-		return Word{}, err
+		return Word{}, errors.New(fmt.Sprintf("error in decoding json: %s", err))
 	}
 
 	return worddef, nil

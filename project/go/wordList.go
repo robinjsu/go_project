@@ -21,14 +21,20 @@ func WordList(env gui.Env, save <-chan Word, title string) {
 					filePtr, err := os.Create(writeFile)
 					defer filePtr.Close()
 					if err != nil {
-						fmt.Printf("File not properly created: %v", err)
+						panic(FileError{
+							filename: writeFile,
+							err:      err,
+						})
 					}
 					filePtr.Chmod(os.ModeAppend)
 					for _, w := range wordList {
 						word := fmt.Sprintf("%v\n", w.String())
 						_, err := filePtr.WriteString(word)
 						if err != nil {
-							panic("Error writing to file")
+							panic(FileError{
+								filename: writeFile,
+								err:      err,
+							})
 						}
 					}
 				}

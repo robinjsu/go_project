@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/draw"
 	"strings"
@@ -56,7 +55,7 @@ func Define(env gui.Env, fontFaces map[string]font.Face, define <-chan string, s
 			word = strings.Trim(word, " ,.!?';:“”’\"()")
 			defs, err := getWord(word)
 			if err != nil {
-				fmt.Println(err)
+				panic(err)
 			}
 			if len(defs.Def) == 0 {
 				defs = Word{Word: "definition unavailable"}

@@ -17,7 +17,7 @@ type HttpError struct {
 }
 
 func (h HttpError) Error() string {
-	return fmt.Sprintf("error in http %s request: %s ", h.method, h.err)
+	return fmt.Sprintf("error in http %s request - %s ", h.method, h.err)
 }
 
 type FileError struct {
@@ -26,7 +26,7 @@ type FileError struct {
 }
 
 func (fs FileError) Error() string {
-	return fmt.Sprintf("error in opening %s: %s", fs.filename, fs.err)
+	return fmt.Sprintf("error in file handling - %s", fs.err)
 }
 
 type ReadError struct {
@@ -34,5 +34,5 @@ type ReadError struct {
 }
 
 func (r ReadError) Error() string {
-	return fmt.Sprintf("error in reading buffer or stream: %s", r.err)
+	return fmt.Sprintf("error in reading buffer or stream -  %s", r.err)
 }
