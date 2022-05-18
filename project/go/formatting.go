@@ -173,6 +173,10 @@ func loadFonts(fontSize float64, fonts ...string) (map[string]font.Face, error) 
 	return fontFaces, nil
 }
 
+func copyFonts(fontFaces map[string]font.Face) map[string]font.Face {
+	return fontFaces
+}
+
 func wrapDef(s string, wrapIdx int) []string {
 	var lines []string
 	if len(s) < wrapIdx {

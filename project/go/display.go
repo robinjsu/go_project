@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/draw"
 
-	"github.com/faiface/gui"
+	gui "github.com/faiface/gui"
 )
 
 func Display(env gui.Env, load <-chan bool) {

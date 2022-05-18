@@ -69,11 +69,11 @@ func getDef(lookup string) (Word, error) {
 			err:    err,
 		}
 	} else if res.StatusCode != 200 {
-		return Word{}, HttpError{
+		fmt.Println(HttpError{
 			method: "Response",
 			url:    url,
 			err:    errors.New(fmt.Sprintf("received non-200 status code: %v", res.StatusCode)),
-		}
+		})
 	}
 	defer res.Body.Close()
 
@@ -81,7 +81,7 @@ func getDef(lookup string) (Word, error) {
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&worddef)
 	if err != nil {
-		return Word{}, errors.New(fmt.Sprintf("error in decoding json: %s", err))
+		fmt.Printf("error in decoding json: %s", err)
 	}
 
 	return worddef, nil

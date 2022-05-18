@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/faiface/gui"
+	gui "github.com/faiface/gui"
 )
 
 func WordList(env gui.Env, save <-chan Word, title string) {

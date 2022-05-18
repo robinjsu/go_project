@@ -7,8 +7,8 @@ import (
 	"image/draw"
 	"strings"
 
-	"github.com/faiface/gui"
-	"github.com/faiface/gui/win"
+	gui "github.com/faiface/gui"
+	win "github.com/faiface/gui/win"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
@@ -26,31 +26,53 @@ var (
 	letters    = []rune{}
 )
 
-func setFont(fontFaces map[string]font.Face) {
-	regFont := fontFaces["regular"]
-	fontBounds, fontAdv = font.BoundString(regFont, "A")
+func setFont(face font.Face) {
+	// regFont := fontFaces["regular"]
+	fontBounds, fontAdv = font.BoundString(face, "A")
 	fmt.Println(fontAdv)
 	anchor = anchor.Add(fixed.P(0, fontBounds.Max.Y.Ceil()))
 }
 
 func makeSplash() func(draw.Image) image.Rectangle {
 	drawSplash := func(drw draw.Image) image.Rectangle {
-		draw.Draw(drw, bg, image.White, image.ZP, draw.Src)
+
+		draw.Draw(drw, bg, image.NewUniform(TEAL), image.ZP, draw.Src)
 		return bg
 	}
 	return drawSplash
 }
 
-func printLetter(r rune, face font.Face) draw.Image {
-	fileString = fmt.Sprintf("%s%s", fileString, string(r))
-	letters = append(letters, r)
+// func printLetter(r rune, face font.Face) draw.Image {
+// 	fileString = fmt.Sprintf("%s%s", fileString, string(r))
+// 	letters = append(letters, r)
+// 	text := &font.Drawer{
+// 		Src:  image.Black,
+// 		Face: face,
+// 		Dot:  anchor,
+// 	}
+
+// 	bounds, _ := text.BoundString(fileString)
+// 	letterBox := image.Rect(
+// 		bounds.Min.X.Floor(),
+// 		bounds.Min.Y.Floor(),
+// 		bounds.Max.X.Ceil(),
+// 		bounds.Max.Y.Ceil(),
+// 	)
+// 	text.Dst = image.NewRGBA(letterBox)
+// 	text.DrawString(string(r))
+// 	anchor = text.Dot
+// 	return text.Dst
+// }
+func printLetter(message string, face font.Face) draw.Image {
+	// fileString = fmt.Sprintf("%s%s", fileString, string(r))
+	// letters = append(letters, r)
 	text := &font.Drawer{
 		Src:  image.Black,
 		Face: face,
 		Dot:  anchor,
 	}
 
-	bounds, _ := text.BoundString(fileString)
+	bounds, _ := text.BoundString(message)
 	letterBox := image.Rect(
 		bounds.Min.X.Floor(),
 		bounds.Min.Y.Floor(),
@@ -58,7 +80,7 @@ func printLetter(r rune, face font.Face) draw.Image {
 		bounds.Max.Y.Ceil(),
 	)
 	text.Dst = image.NewRGBA(letterBox)
-	text.DrawString(string(r))
+	text.DrawString(message)
 	anchor = text.Dot
 	return text.Dst
 }
@@ -105,9 +127,11 @@ func printKey(k win.Key) {
 	fmt.Print(k)
 }
 
-func Load(env gui.Env, fontFaces map[string]font.Face, filepath chan<- string) {
-	setFont(fontFaces)
+func Load(env gui.Env, face font.Face, filepath chan<- string) {
+	setFont(face)
 	env.Draw() <- makeSplash()
+	textImg := printLetter("DRAG A .TXT FILE OVER THIS WINDOW TO START...", face)
+	env.Draw() <- drawLetters(textImg)
 	for {
 		select {
 		case e, ok := <-env.Events():
@@ -116,17 +140,19 @@ func Load(env gui.Env, fontFaces map[string]font.Face, filepath chan<- string) {
 				return
 			}
 			switch e := e.(type) {
+			case win.PathDrop:
+				filepath <- e.FilePath
 			case win.KbType:
-				textImg := printLetter(e.Rune, fontFaces["regular"])
-				env.Draw() <- drawLetters(textImg)
+				// textImg := printLetter(e.Rune, face)
+				// env.Draw() <- drawLetters(textImg)
 			case win.KbDown:
 				switch e.Key {
-				case win.KeyEnter:
-					filepath <- fileString
+				// case win.KeyEnter:
+				// 	filepath <- fileString
 				case win.KeyBackspace:
 					if fileString != "" {
 						// img := deleteLetter(fontFaces["regular"])
-						env.Draw() <- deleteLetter(fontFaces["regular"])
+						env.Draw() <- deleteLetter(face)
 					}
 
 				}

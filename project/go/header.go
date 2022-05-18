@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/draw"
 
-	"github.com/faiface/gui"
+	gui "github.com/faiface/gui"
 	"golang.org/x/image/font"
 )
 

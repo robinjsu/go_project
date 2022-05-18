@@ -6,8 +6,9 @@ import (
 	"image/draw"
 	"strings"
 
-	"github.com/faiface/gui"
-	"github.com/faiface/gui/win"
+	gui "github.com/faiface/gui"
+	win "github.com/faiface/gui/win"
+
 	"golang.org/x/image/font"
 )
 
@@ -55,7 +56,7 @@ func highlightWord(face font.Face, images []imageObj, p image.Point, words chan<
 			rct := ln.placement.Bounds()
 			if p.In(rct) {
 				wordBounds, wrd = findWord(face, ln, p)
-				draw.Draw(drw, wordBounds, &image.Uniform{HIGHLIGHT_GRAY}, image.ZP, draw.Over)
+				draw.Draw(drw, wordBounds, &image.Uniform{LIGHT_GRAY}, image.ZP, draw.Over)
 			}
 		}
 		// send words to Search component
@@ -77,7 +78,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 		select {
 		case file := <-filepath:
 			fmt.Println(file)
-			_, err := cont.parseText(textFile, fontFaces["regular"], &textBounds)
+			_, err := cont.parseText(file, fontFaces["regular"], &textBounds)
 			if err != nil {
 				panic(err.Error())
 			}
