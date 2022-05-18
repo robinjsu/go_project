@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
+	"strings"
 
 	"github.com/faiface/gui"
 	"github.com/faiface/gui/win"
@@ -19,12 +21,15 @@ var (
 	fontBounds = fixed.Rectangle26_6{}
 	fontAdv    = fixed.I(0)
 	bg         = image.Rect(0, 0, MAXWIDTH, MAXHEIGHT)
+	bgImage    = image.NewRGBA(bg)
 	fileString = ""
+	letters    = []rune{}
 )
 
 func setFont(fontFaces map[string]font.Face) {
 	regFont := fontFaces["regular"]
 	fontBounds, fontAdv = font.BoundString(regFont, "A")
+	fmt.Println(fontAdv)
 	anchor = anchor.Add(fixed.P(0, fontBounds.Max.Y.Ceil()))
 }
 
@@ -38,21 +43,59 @@ func makeSplash() func(draw.Image) image.Rectangle {
 
 func printLetter(r rune, face font.Face) draw.Image {
 	fileString = fmt.Sprintf("%s%s", fileString, string(r))
-	bgImage := image.NewRGBA(bg)
+	letters = append(letters, r)
 	text := &font.Drawer{
-		Dst:  bgImage,
 		Src:  image.Black,
 		Face: face,
 		Dot:  anchor,
 	}
+
+	bounds, _ := text.BoundString(fileString)
+	letterBox := image.Rect(
+		bounds.Min.X.Floor(),
+		bounds.Min.Y.Floor(),
+		bounds.Max.X.Ceil(),
+		bounds.Max.Y.Ceil(),
+	)
+	text.Dst = image.NewRGBA(letterBox)
 	text.DrawString(string(r))
 	anchor = text.Dot
-	return bgImage
+	return text.Dst
+}
+
+func deleteLetter(face font.Face) func(draw.Image) image.Rectangle {
+	anchor = anchor.Sub(fixed.Point26_6{X: fontAdv, Y: 0})
+
+	fmt.Println(anchor)
+	lastRune := letters[len(letters)-1]
+	letters = letters[:len(letters)-1]
+	fileString = strings.TrimSuffix(fileString, string(lastRune))
+	del := &font.Drawer{
+		Src:  image.NewUniform(color.White),
+		Face: face,
+		Dot:  anchor,
+	}
+
+	bounds, _ := del.BoundString(string(lastRune))
+	letterBox := image.Rect(
+		bounds.Min.X.Floor(),
+		bounds.Min.Y.Floor(),
+		bounds.Max.X.Ceil(),
+		bounds.Max.Y.Ceil(),
+	)
+	del.Dst = image.NewRGBA(letterBox)
+	del.DrawString(string(lastRune))
+
+	delete := func(drw draw.Image) image.Rectangle {
+		draw.Draw(drw, letterBox, image.White, image.ZP, draw.Over)
+		return drw.Bounds()
+	}
+	return delete
 }
 
 func drawLetters(letterImg draw.Image) func(draw.Image) image.Rectangle {
 	typing := func(drw draw.Image) image.Rectangle {
-		draw.Draw(drw, letterImg.Bounds(), letterImg, image.ZP, draw.Over)
+		draw.Draw(drw, letterImg.Bounds(), letterImg, letterImg.Bounds().Min, draw.Over)
 		return drw.Bounds()
 	}
 	return typing
@@ -63,6 +106,7 @@ func printKey(k win.Key) {
 }
 
 func Load(env gui.Env, fontFaces map[string]font.Face, filepath chan<- string) {
+	setFont(fontFaces)
 	env.Draw() <- makeSplash()
 	for {
 		select {
@@ -76,8 +120,15 @@ func Load(env gui.Env, fontFaces map[string]font.Face, filepath chan<- string) {
 				textImg := printLetter(e.Rune, fontFaces["regular"])
 				env.Draw() <- drawLetters(textImg)
 			case win.KbDown:
-				if e.Key == win.KeyEnter {
+				switch e.Key {
+				case win.KeyEnter:
 					filepath <- fileString
+				case win.KeyBackspace:
+					if fileString != "" {
+						// img := deleteLetter(fontFaces["regular"])
+						env.Draw() <- deleteLetter(fontFaces["regular"])
+					}
+
 				}
 				// case win.MoDown:
 				// case win.MoUp:
