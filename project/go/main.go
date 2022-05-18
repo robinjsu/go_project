@@ -21,13 +21,16 @@ func run() {
 	words := make(chan string)
 	define := make(chan string)
 	save := make(chan Word)
+	filepath := make(chan string)
+	load := make(chan string)
 
 	// each component is muxed from main, occupying its own thread
-	go Display(mux.MakeEnv())
-	go Text(mux.MakeEnv(), "./alice.txt", fontFaces, words)
+	go Display(mux.MakeEnv(), load)
+	go Text(mux.MakeEnv(), "./alice.txt", fontFaces, words, filepath, load)
 	go Header(mux.MakeEnv(), fontFaces, words, define)
 	go Define(mux.MakeEnv(), fontFaces, define, save)
 	go WordList(mux.MakeEnv(), save, "test")
+	go Load(mux.MakeEnv(), fontFaces, filepath)
 
 	// main application loop
 	for e := range mainEnv.Events() {

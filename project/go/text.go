@@ -13,6 +13,7 @@ import (
 
 var (
 	currentPage = 0
+	fileLoaded  = false
 )
 
 func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) func(drw draw.Image) image.Rectangle {
@@ -64,47 +65,54 @@ func highlightWord(face font.Face, images []imageObj, p image.Point, words chan<
 	return load
 }
 
-func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string) {
+func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string, filepath <-chan string, load chan<- string) {
 	var cont *Content = NewContent()
 	var textLines []imageObj
 	var pages [][]string
 	var p image.Point
-
-	_, err := cont.parseText(textFile, fontFaces["regular"], &textBounds)
-	if err != nil {
-		error.Error(err)
-	}
-	lineHeight := fontFaces["regular"].Metrics().Height.Ceil() * 2
-	pages = makePages(cont.wrapped, LINES_PER_PAGE)
-	textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
-	loadText := drawTextLines(textLines, fontFaces["regular"], &textBounds)
-	env.Draw() <- loadText
+	var loadText func(draw.Image) image.Rectangle
+	var lineHeight int
 
 	for {
 		select {
+		case file := <-filepath:
+			fmt.Println(file)
+			_, err := cont.parseText(textFile, fontFaces["regular"], &textBounds)
+			if err != nil {
+				error.Error(err)
+			}
+			lineHeight = fontFaces["regular"].Metrics().Height.Ceil() * 2
+			pages = makePages(cont.wrapped, LINES_PER_PAGE)
+			textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+			loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
+			env.Draw() <- loadText
+			fileLoaded = true
+			load <- "ok"
 		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
 				return
 			}
-			switch e := e.(type) {
-			case win.MoDown:
-			case win.MoUp:
-				p = image.Pt(e.X, e.Y)
-				if p.In(textBounds) {
-					env.Draw() <- drawTextLines(textLines, fontFaces["regular"], &textBounds)
-					loadText = highlightWord(fontFaces["bold"], textLines, p, words)
+			if fileLoaded {
+				switch e := e.(type) {
+				case win.MoDown:
+				case win.MoUp:
+					p = image.Pt(e.X, e.Y)
+					if p.In(textBounds) {
+						env.Draw() <- drawTextLines(textLines, fontFaces["regular"], &textBounds)
+						loadText = highlightWord(fontFaces["bold"], textLines, p, words)
+						env.Draw() <- loadText
+					}
+				case win.KbDown:
+					if e.Key == win.KeyDown && currentPage < len(pages)-1 {
+						currentPage += 1
+					} else if e.Key == win.KeyUp && currentPage > 0 {
+						currentPage -= 1
+					}
+					textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+					loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
 					env.Draw() <- loadText
 				}
-			case win.KbDown:
-				if e.Key == win.KeyDown && currentPage < len(pages)-1 {
-					currentPage += 1
-				} else if e.Key == win.KeyUp && currentPage > 0 {
-					currentPage -= 1
-				}
-				textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
-				loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
-				env.Draw() <- loadText
 			}
 		}
 	}
