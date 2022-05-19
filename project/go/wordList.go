@@ -3,21 +3,24 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	gui "github.com/faiface/gui"
+	win "github.com/faiface/gui/win"
 )
 
-func WordList(env gui.Env, save <-chan Word, title string) {
+func WordList(env gui.Env, save <-chan Word) {
+	var title string
 	var wordList []Word
 	for {
 		select {
 		case wordObj := <-save:
 			wordList = append(wordList, wordObj)
 
-		case _, ok := <-env.Events():
+		case e, ok := <-env.Events():
 			if !ok {
 				if len(wordList) > 0 {
-					writeFile := fmt.Sprintf("%v-WordList.txt", title)
+					writeFile := fmt.Sprintf("%s-wordlist.txt", title)
 					filePtr, err := os.Create(writeFile)
 					defer filePtr.Close()
 					if err != nil {
@@ -41,10 +44,11 @@ func WordList(env gui.Env, save <-chan Word, title string) {
 				close(env.Draw())
 				return
 			}
-			// switch e := e.(type) {
-			// case win.MoDown:
-			// 	print(e)
-			// }
+			switch e := e.(type) {
+			case win.PathDrop:
+				dirs := strings.Split(e.FilePath, "/")
+				title = strings.TrimSuffix(dirs[len(dirs)-1], ".txt")
+			}
 		}
 	}
 }
