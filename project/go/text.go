@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -23,7 +24,7 @@ func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) f
 		page := *bounds
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
 		for _, obj := range images {
-			draw.Draw(drw, obj.placement, obj.img, image.Pt(0, 0), draw.Over)
+			draw.Draw(drw, obj.placement, obj.img, image.Pt(0, 0), draw.Src)
 		}
 		return page
 	}
@@ -66,7 +67,7 @@ func highlightWord(face font.Face, images []imageObj, p image.Point, words chan<
 	return load
 }
 
-func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string, filepath <-chan string, load chan<- bool) {
+func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words chan<- string, filepath <-chan string, load chan bool, prev <-chan bool, next <-chan bool) {
 	var cont *Content = NewContent()
 	var textLines []imageObj
 	var pages [][]string
@@ -80,7 +81,7 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 			fmt.Println(file)
 			_, err := cont.parseText(file, fontFaces["regular"], &textBounds)
 			if err != nil {
-				panic(err.Error())
+				fmt.Println(errors.Unwrap(err))
 			}
 			lineHeight = fontFaces["regular"].Metrics().Height.Ceil() * 2
 			pages = makePages(cont.wrapped, LINES_PER_PAGE)
@@ -89,6 +90,20 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 			env.Draw() <- loadText
 			fileLoaded = true
 			load <- fileLoaded
+		case <-prev:
+			if currentPage > 0 {
+				currentPage -= 1
+			}
+			textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+			loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
+			env.Draw() <- loadText
+		case <-next:
+			if currentPage < len(pages)-1 {
+				currentPage += 1
+			}
+			textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+			loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
+			env.Draw() <- loadText
 		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
@@ -105,16 +120,22 @@ func Text(env gui.Env, textFile string, fontFaces map[string]font.Face, words ch
 						env.Draw() <- loadText
 					}
 				case win.KbDown:
-					if e.Key == win.KeyDown && currentPage < len(pages)-1 {
-						currentPage += 1
-					} else if e.Key == win.KeyUp && currentPage > 0 {
+					if e.Key == win.KeyUp && currentPage > 0 {
 						currentPage -= 1
+					} else if e.Key == win.KeyDown && currentPage < len(pages)-1 {
+						currentPage += 1
 					}
 					textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
 					loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
 					env.Draw() <- loadText
 				}
 			}
+			// default:
+			// 	if fileLoaded {
+			// 		textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+			// 		loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
+			// 		env.Draw() <- loadText
+			// }
 		}
 	}
 }
