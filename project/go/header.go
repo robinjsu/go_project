@@ -33,7 +33,7 @@ func setHeader(word string, bounds *image.Rectangle, lineHeight int, face font.F
 	))
 	header := func(drw draw.Image) image.Rectangle {
 		newR := makeInsetR(*bounds, MARGIN/2)
-		draw.Draw(drw, newR, &image.Uniform{TEAL}, image.Pt(0, 0), draw.Over)
+		draw.Draw(drw, newR, &image.Uniform{SHADOW}, image.Pt(0, 0), draw.Over)
 		wrd.DrawString(word)
 		draw.Draw(drw, wrd.Dst.Bounds(), wrd.Dst, wrd.Dst.Bounds().Min, draw.Over)
 		return newR

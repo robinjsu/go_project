@@ -83,14 +83,14 @@ func drawBtns(env gui.Env, prevBtn image.Rectangle, nextBtn image.Rectangle, r i
 	}
 }
 
-func PagingBtns(env gui.Env, prev chan<- bool, next chan<- bool, faces map[string]font.Face, ready chan bool) {
+func PagingBtns(env gui.Env, prev chan<- bool, next chan<- bool, faces map[string]font.Face, load chan bool) {
 	// loaded := false
 	done := make(chan bool)
 	btns := setBtnArea(buttonR, footer)
+
+	go drawBtns(env, btns[0], btns[1], footer, faces["bold"], done)
 	for {
 		select {
-		case <-ready:
-			go drawBtns(env, btns[0], btns[1], footer, faces["bold"], done)
 		case e, ok := <-env.Events():
 			if !ok {
 				done <- true
