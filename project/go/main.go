@@ -31,18 +31,18 @@ func run() {
 	save := make(chan Word)
 	filepath := make(chan string)
 	load := make(chan bool)
-	prev := make(chan bool)
-	next := make(chan bool)
+	page := make(chan string)
+	text := make(chan *Content)
 
 	// each component is muxed from main, occupying its own thread
 	go Display(mux.MakeEnv())
-	go Text(mux.MakeEnv(), "./alice.txt", copyFonts(fontFaces), words, filepath, load, prev, next)
+	go Text(mux.MakeEnv(), copyFonts(fontFaces), words, filepath, load, page, text)
 	go Header(mux.MakeEnv(), copyFonts(fontFaces), words, define)
 	go Define(mux.MakeEnv(), copyFonts(fontFaces), define, save)
 	go WordList(mux.MakeEnv(), save)
 	go Load(mux.MakeEnv(), largeFont["bold"], filepath)
-	go PagingBtns(mux.MakeEnv(), prev, next, fontFaces, load)
-	go TextToSpeech(mux.MakeEnv(), load)
+	go TextToSpeech(mux.MakeEnv(), load, text)
+	go PagingBtns(mux.MakeEnv(), page, fontFaces, load)
 
 	// main application loop
 	for e := range mainEnv.Events() {
