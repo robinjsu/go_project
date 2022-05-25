@@ -76,17 +76,17 @@ func playBack(audio *os.File, start chan bool, playback chan bool) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	stream.Close()
+	defer stream.Close()
 	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
 	controller := &beep.Ctrl{Streamer: stream, Paused: false}
 	for {
 		select {
 		case <-start:
-			go speaker.Play(controller)
+			speaker.Play(controller)
 		case <-playback:
 			fmt.Println("received signal")
 			speaker.Lock()
-			controller.Paused = true
+			controller.Paused = !controller.Paused
 			speaker.Unlock()
 		}
 	}
@@ -98,26 +98,25 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan *Content) {
 		fmt.Println(err)
 	}
 	audioBtn, pngR := drawAudio(audioPng)
-	// start := make(chan bool)
-	// pause := make(chan bool)
+	start := make(chan bool)
+	pause := make(chan bool)
 
 	for {
 		select {
 		case ready := <-load:
 			if ready == true {
 				env.Draw() <- audioBtn
-				load <- true
+				// load <- true
 			}
 		case text := <-content:
 			pages := makePages(text.wrapped, LINES_PER_PAGE)
 			filename := getSpeech(string(strings.Join(pages[0], " ")))
-			_, err := os.Open(filename)
+			audio, err := os.Open(filename)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			// go playBack(audio, start, pause)
-		// start <- true
+			go playBack(audio, start, pause)
 
 		case e, ok := <-env.Events():
 			if !ok {
@@ -126,15 +125,14 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan *Content) {
 			}
 			switch e := e.(type) {
 			case win.MoDown:
-				fmt.Println(e)
 				if e.Point.In(pngR) {
 					fmt.Println("found audio btn")
+					start <- true
 					// speaker.Play(playback)
 				}
 			case win.KbDown:
 				if e.Key == win.KeySpace {
-					fmt.Println(e)
-					// pause <- true
+					pause <- true
 				}
 			}
 		}
