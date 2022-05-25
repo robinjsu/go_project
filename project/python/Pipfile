@@ -9,6 +9,7 @@ pyglfw = "*"
 pillow = "*"
 pyopengl = "*"
 glfw = "*"
+requests = "*"
 
 [dev-packages]
 

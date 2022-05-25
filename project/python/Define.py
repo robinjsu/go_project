@@ -88,7 +88,7 @@ class Define(Env):
             return base
         return drawSection
 
-    def onBroadcast(self, event: Broadcast):
+    def onBroadcast(self, event: BroadcastEvent):
         if event.event == broadcast.DEFINE:
             self.word = event.obj.text
             defs = event.obj.getDefinitions()
@@ -97,3 +97,4 @@ class Define(Env):
                 print('no definitions retrieved')
             else:
                 self.drawImg(self.setDefSection(defs))
+                self.sendEvent(BroadcastEvent(broadcast.SAVE, event.obj))

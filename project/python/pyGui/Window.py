@@ -1,7 +1,7 @@
 import glfw
 import OpenGL.GL as gl
 from PIL import Image
-from typing import NamedTuple
+from typing import NamedTuple, List
 import threading
 
 from .Event import *
@@ -9,8 +9,9 @@ from .Env import Env
 from .utils import Box, Point
 
 '''
-TODO: figure out pixels vs screen coordinates, reread tutorial!
+TODO: figure out pixels vs screen coordinates issue ==> what is the best way to resize for the given screen/monitor DPI scale?
 '''
+
 class Options(NamedTuple):  
     title: str
     width: int
@@ -29,22 +30,23 @@ class Window(Env):
     mouseX: float
     mouseY: float
     drawStream: threading.Thread
+    xscale: float
+    yscale: float
 
     def __init__(self, options: Options):
         super().__init__(True)
-        assert (self.events is not None) and (self.draw is not None), f'events and draw channels not properly initialized'
+        assert (self.eventChan() is not None) and (self.drawChan() is not None), f'events and draw channels not properly initialized'
         # self.win = glfw.create_window()
         self.options = options
         self.initGLFW()
         # get image size in pixels
         width, height = glfw.get_framebuffer_size(self.win)
+        self.xscale, self.yscale = 1.0, 1.0
         self.image = Image.new("RGBA", (width, height), (255,255,255,255))
         self.setMousePos(0,0)
         
         self.handleDrawCommands()
-    
-    def createLock(self):
-        self._ready = threading.Condition()
+
 
     def setMousePos(self, x: float, y: float):
         '''
@@ -61,21 +63,40 @@ class Window(Env):
         which gets broadcast to all sub-Envs created with the Mux.
         '''
         def cursorCallback(win: glfw._GLFWwindow, x: float, y: float):
-            self.setMousePos(x*2,y*2)
-        
+            self.setMousePos(x* self.xscale ,y*self.yscale)
+         
         def mCallback(win: glfw._GLFWwindow, button: int, action: int, mods: int):
             posX, posY = glfw.get_cursor_pos(win)
-            mouseEvent = MouseEvent(button, posX*2, posY*2, action)
-            self.events.send(mouseEvent)
+            mouseEvent = MouseEvent(button, posX*self.xscale, posY*self.yscale, action)
+            self.sendEvent(mouseEvent)
 
         def kbCallback(win: glfw._GLFWwindow, key: int, scancode: int, action: int, mods: int) -> None:
             keyEvent = KeyEvent(key, action)
-            self.events.send(keyEvent)
+            self.sendEvent(keyEvent)
+
+        def contentScaleCallback(win: glfw._GLFWwindow, xscale: float, yscale: float):
+            self.xscale = xscale
+            self.yscale = yscale
+
+        # def framebufferCallback(win: glfw._GLFWwindow, xscale, yscale):
+        #     # xscale, yscale = glfw.get_window_content_scale(self.win)
+        #     # print('rescale')
+        #     # xratio, yratio = xscale // 1, yscale // 1
+        #     # resized = self.image.resize((int(self.image.width * xratio), int(self.image.height * yratio)))
+        #     pass
+
+        def dropCallback(win: glfw._GLFWwindow, paths):
+            for p in paths:
+                print(p)
+
 
         glfw.set_cursor_pos_callback(self.win, cursorCallback)
         glfw.set_mouse_button_callback(self.win, mCallback)
         glfw.set_key_callback(self.win, kbCallback)
-
+        # glfw.set_framebuffer_size_callback(self.win, framebufferCallback)
+        glfw.set_window_content_scale_callback(self.win, contentScaleCallback)
+        glfw.set_drop_callback(self.win, dropCallback)
+# 
     def initGLFW(self) -> None:
         '''
         Initialze GLFW library and window context. Callback functions for user input are also initialized.
@@ -113,7 +134,9 @@ class Window(Env):
         '''
         while not glfw.window_should_close(self.win):
             glfw.wait_events()
-        self.events.close()
+        
+        self.sendEvent(BroadcastEvent(BroadcastType().CLOSE, None))
+        self.eventChan().close()
 
         # must be called from main thread
         glfw.terminate()
@@ -128,9 +151,9 @@ class Window(Env):
             self.drawLock = threading.RLock()
             lock.acquire()
             glfw.make_context_current(self.win)
-            while self.events.closed == False:
+            while self.eventChan().closed == False:
                 # Render here
-                drawFunc = self.draw.receive()
+                drawFunc = self.drawChan().receive()
                 if drawFunc != None:
                     self.renderWindow(drawFunc(self.image))
                     # Swap front and back buffers
@@ -168,8 +191,8 @@ class Window(Env):
         '''
         Begin drawing and event threads
         ''' 
-        with self._ready:
-            self._ready.notify_all()
+        with self.getLock():
+            self.getLock().notify_all()
         self.drawStream.start()
         self.pollWinEvents()
         return

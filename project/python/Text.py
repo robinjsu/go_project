@@ -138,17 +138,18 @@ class Text(Env):
                     return (highlightWord, wrd)
         return None, None
 
+
     def onMouseClick(self, event: MouseEvent):
         '''
         Callback function that responds to a mouse button being pressed or released.
         :param event: a MouseEvent object that represents the mouse button and action that occurred.
         '''
         pt = Point(event.xpos, event.ypos)
-        if event.action == input.MouseDown:
+        if event.action == input.Press:
             if self.bounds.contains(pt):
                 highlightFunc, word = self.findWord(pt)
                 if highlightFunc != None:
-                    self.events.send(Broadcast(broadcast.DEFINE, word))
+                    self.sendEvent(BroadcastEvent(broadcast.DEFINE, word))
                     self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
                     self.drawImg(highlightFunc)
 
@@ -158,11 +159,11 @@ class Text(Env):
         Callback function that responds to a key being pressed or released.
         :param event: a KeyEvent object that represents the key pressed and action that occurred.
         '''
-        if keyEvent.key == input.ArrowDown and keyEvent.action == 1:
+        if keyEvent.key == input.ArrowDown and keyEvent.action == input.Press:
             if self.page < self.numPages-1:
                 self.page += 1
             self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
-        elif keyEvent.key == input.ArrowUp and keyEvent.action == 1:
+        elif keyEvent.key == input.ArrowUp and keyEvent.action == input.Press:
             if self.page > 0:
                 self.page -= 1
             self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))

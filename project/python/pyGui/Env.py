@@ -5,21 +5,20 @@ from PIL import Image
 
 from .Channel import DrawChan, EventChan
 from .Event import InputType, MouseEvent, KeyEvent, BroadcastEvent
-# from .Window import Window
 
 # TODO: how to poll for events in a non-blocking way, such that the env can write custom callbacks for when an event is received?
 class Env:
-    _events: EventChan
-    _draw: DrawChan
+    __events: EventChan
+    __draw: DrawChan
+    __ready: threading.Condition
     window: bool
-    _ready: threading.Condition
     id: int
     name: str
 
     def __init__(self, main=False, id=0, threadName=''):
         self.window = main
-        self._events = EventChan(Queue(), Queue())
-        self._draw = DrawChan()
+        self.__events = EventChan(Queue(), Queue())
+        self.__draw = DrawChan()
         self.setId(id) 
         if main == True:
             self.createLock()
@@ -27,22 +26,22 @@ class Env:
 
     def createLock(self):
         assert self.window == True, 'must be Main Env to create lock'
-        self._ready = threading.Condition()
+        self.__ready = threading.Condition()
     
     def getLock(self):
-        return self._ready
+        return self.__ready
     
     def addCond(self, lock):
-        self._ready = lock
+        self.__ready = lock
     
     def setId(self, newId):
         self.id = newId
     
     def eventChan(self) -> EventChan:
-        return self._events
+        return self.__events
     
     def drawChan(self) -> DrawChan:
-        return self._draw
+        return self.__draw
 
     def setEventChan(self, eventsIn, eventsOut):
         '''
@@ -50,14 +49,14 @@ class Env:
         :param eventsIn: Queue to receive events
         :param eventsOut: Queue to send events
         '''
-        self._events = EventChan(eventsIn, eventsOut)
+        self.__events = EventChan(eventsIn, eventsOut)
     
     def setDrawChan(self, drawChan):
         '''
         Link the Env's draw channel to the Window (main) components draw channel, where it sends commands.
         :param drawChan: DrawChan object where drawing functions are sent
         '''
-        self._draw = drawChan
+        self.__draw = drawChan
     
     def onMouseClick(self, event):
         '''
@@ -85,14 +84,14 @@ class Env:
         Create drawing function that gets sent to the Window (main Env) for rendering.
         :param drawCommand: the drawing function to send. The function must match the function signature.
         '''
-        self._draw.send(drawCommand)
+        self.__draw.send(drawCommand)
 
     def sendEvent(self, event: Any):
         '''
         Broadcast event to all other components. 
         :param event: a BroadcastEvent object that contains the broadcast type and object to send, if necessary.
         '''
-        self._events.send(event)
+        self.__events.send(event)
 
     def init(self):
         '''
@@ -105,8 +104,8 @@ class Env:
         should start running it's logic and callback listeners on a thread separate from the main Python interpreter thread
         '''
         def startThread():
-            with self._ready:
-                self._ready.wait()
+            with self.__ready:
+                self.__ready.wait()
             self.init()
             while True:
                 event = self.eventChan().receive()
