@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"image"
 	"image/draw"
+	"image/png"
+	"os"
+	"strings"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -28,7 +33,9 @@ func drawText(s string, face font.Face) (image.Image, Formatted) {
 		txtBnds.Max.X.Ceil(),
 		txtBnds.Max.Y.Ceil(),
 	)
-	text.Dst = image.NewRGBA(bounds)
+	txtImg := image.NewRGBA(bounds)
+	draw.Draw(txtImg, bounds, image.White, bounds.Min, draw.Src)
+	text.Dst = txtImg
 	text.DrawString(s)
 	return text.Dst, Formatted{txt: s, span: txtAdv, bounds: txtBnds}
 }
@@ -83,4 +90,29 @@ func drawBtn(text string, face font.Face, r image.Rectangle, loc image.Point) dr
 	txt.DrawString(text)
 
 	return txt.Dst
+}
+
+func getPNG(pngFile string) (image.Image, error) {
+	if !strings.HasSuffix(pngFile, "png") {
+		return nil, FileError{
+			filename: pngFile,
+			err:      errors.New("wrong file type, must be PNG"),
+		}
+	}
+	pngBytes, err := os.ReadFile(pngFile)
+	if err != nil {
+		return nil, FileError{
+			filename: pngFile,
+			err:      err,
+		}
+	}
+	pngReader := bytes.NewReader(pngBytes)
+	pngImage, err := png.Decode(pngReader)
+	if err != nil {
+		return nil, FileError{
+			filename: pngFile,
+			err:      err,
+		}
+	}
+	return pngImage, nil
 }

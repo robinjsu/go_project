@@ -23,21 +23,20 @@ const (
 )
 
 var (
-	BLACK            = color.RGBA{13, 19, 33, 255}
-	PRUSSIAN_BLUE    = color.RGBA{29, 45, 68, 255}
-	DARK_BLUE        = color.RGBA{62, 92, 118, 255}
-	SHADOW           = color.RGBA{116, 140, 171, 255}
+	BLACK         = color.RGBA{13, 19, 33, 255}
+	PRUSSIAN_BLUE = color.RGBA{29, 45, 68, 255}
+	DARK_BLUE     = color.RGBA{62, 92, 118, 255}
+	// SHADOW           = color.RGBA{116, 140, 171, 255}
 	EGGSHELL         = color.RGBA{240, 235, 216, 255}
 	HIGHLIGHT_GRAY   = color.RGBA{0, 0, 255, 75}
 	LIGHT_GRAY       = color.RGBA{0, 0, 255, 50}
 	PURE_BLUE        = color.RGBA{0, 0, 255, 100}
-	TEAL             = color.RGBA{0, 150, 200, 255}
+	SHADOW           = color.RGBA{116, 140, 171, 255}
 	DEEP_BLUE        = color.RGBA{0, 0, 100, 255}
 	PRUSSIAN_BLUE_TP = color.RGBA{29, 45, 68, 100}
 	DARK_BLUE_TP     = color.RGBA{62, 92, 118, 100}
 	SHADOW_TP        = color.RGBA{116, 140, 171, 100}
 	EGGSHELL_TP      = color.RGBA{240, 235, 216, 100}
-	TEAL_TP          = color.RGBA{0, 150, 200, 100}
 	DEEP_BLUE_TP     = color.RGBA{0, 0, 100, 100}
 	MARGIN           = 5
 	defCorner        = image.Rect(800, 50, 1200, 1200)
