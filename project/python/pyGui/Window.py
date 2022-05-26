@@ -39,14 +39,13 @@ class Window(Env):
         # self.win = glfw.create_window()
         self.options = options
         self.initGLFW()
+        x, y = glfw.get_window_content_scale(self.win)
+        self.xscale, self.yscale = x, y
         # get image size in pixels
         width, height = glfw.get_framebuffer_size(self.win)
-        self.xscale, self.yscale = 1.0, 1.0
         self.image = Image.new("RGBA", (width, height), (255,255,255,255))
         self.setMousePos(0,0)
-        
         self.handleDrawCommands()
-
 
     def setMousePos(self, x: float, y: float):
         '''
@@ -79,11 +78,11 @@ class Window(Env):
             self.yscale = yscale
 
         # def framebufferCallback(win: glfw._GLFWwindow, xscale, yscale):
-        #     # xscale, yscale = glfw.get_window_content_scale(self.win)
-        #     # print('rescale')
-        #     # xratio, yratio = xscale // 1, yscale // 1
-        #     # resized = self.image.resize((int(self.image.width * xratio), int(self.image.height * yratio)))
-        #     pass
+        #     xscale, yscale = glfw.get_window_content_scale(self.win)
+        #     print('rescale')
+        #     xratio, yratio = xscale // 1, yscale // 1
+        #     resized = self.image.resize((int(self.image.width * xratio), int(self.image.height * yratio)))
+            # pass
 
         def dropCallback(win: glfw._GLFWwindow, paths):
             pathDrop = PathDropEvent(paths[0])

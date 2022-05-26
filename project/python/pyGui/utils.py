@@ -47,7 +47,7 @@ class Box:
         '''
         return p.x >= math.floor(self.x0) and p.x < math.ceil(self.x1) and p.y >= math.floor(self.y0) and p.y < math.ceil(self.y1)
 
-    def add(self, p: Point):
+    def resize(self, p: Point):
         self.x1 += p.x
         self.y1 += p.y
     
@@ -145,6 +145,8 @@ def formatText(text: str, charsPerWidth):
                 idx = len(text)
             line = text[:idx].rstrip(' \n')
             plainText.append(line)
+    else:
+        plainText.append(text)
     return plainText
 
 def makeLineBreak(line: str) -> int:

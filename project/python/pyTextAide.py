@@ -5,8 +5,9 @@ from Text import Text
 from Define import Define
 from WordList import WordList
 from DropFile import DropFile
+from Paging import Paging
 from const import *
-from pyGui.utils import Box 
+from pyGui.utils import Box, Point
 
 options: Options
 mux: Mux
@@ -16,7 +17,6 @@ win: Window
 
 # TODO: where to put this?
 rand.seed(time.time())
-
 
 dispBox = None
 textBox = None
@@ -42,6 +42,7 @@ def start():
     mux.addEnv(Define(defBox, id=3, name="DefinitionThread"))
     mux.addEnv(WordList(None, id=4, name="WordListThread"))
     mux.addEnv(DropFile(dispBox, TTF_BOLD, id=5, name="PathDropThread"))
+    mux.addEnv(Paging(Point(100, 25), Box(0, textBox.y1, textBox.x1, dispBox.y1), TTF, id=6, name="PagingThread"))
 
     # mux.run() will start up all envs that have been added to it
     mux.run()

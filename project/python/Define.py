@@ -72,7 +72,8 @@ class Define(Env):
             drawCtx = ImageDraw.ImageDraw(bg)
             anchor = Point(MARGIN,MARGIN)
             for defn in definitions:
-                formatted = [f'[{defn[0]}]'] + formatText(defn[1], self.charsPerWidth)
+                formatted = formatText(f'[{defn[0]}] {defn[1]}', self.charsPerWidth)
+                # formatted = [f'[{defn[0]}] {defLines[0]}'] + defLines[1:]
                 joinedStr = '\n'.join(formatted)
                 drawCtx.multiline_text(
                     (anchor.x, anchor.y), 
