@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -24,7 +25,7 @@ func WordList(env gui.Env, save <-chan Word) {
 					filePtr, err := os.Create(writeFile)
 					defer filePtr.Close()
 					if err != nil {
-						panic(FileError{
+						log.Fatal(FileError{
 							filename: writeFile,
 							err:      err,
 						})
@@ -34,7 +35,7 @@ func WordList(env gui.Env, save <-chan Word) {
 						word := fmt.Sprintf("%v\n", w.String())
 						_, err := filePtr.WriteString(word)
 						if err != nil {
-							panic(FileError{
+							log.Fatal(FileError{
 								filename: writeFile,
 								err:      err,
 							})

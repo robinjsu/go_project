@@ -86,7 +86,11 @@ func drawBtns(env gui.Env, prevBtn image.Rectangle, nextBtn image.Rectangle, r i
 
 func PagingBtns(env gui.Env, page chan<- string, faces map[string]font.Face, load chan bool) {
 	done := make(chan bool)
-	btns := setBtnArea(buttonR, footer)
+
+	btns := setBtnArea(buttonR, image.Rectangle{
+		Min: footer.Min.Add(image.Pt((footer.Dx() / 2), 0)),
+		Max: footer.Max,
+	})
 
 	go drawBtns(env, btns[0], btns[1], footer, faces["bold"], done)
 	for {

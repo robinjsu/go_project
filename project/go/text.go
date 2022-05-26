@@ -67,7 +67,7 @@ func highlightWord(face font.Face, images []imageObj, p image.Point, words chan<
 	return load
 }
 
-func Text(env gui.Env, fontFaces map[string]font.Face, words chan<- string, filepath chan string, load chan bool, page <-chan string, content chan<- *Content) {
+func Text(env gui.Env, fontFaces map[string]font.Face, words chan<- string, filepath chan string, load chan bool, page chan string, content chan<- [][]string) {
 	var cont *Content = NewContent()
 	var textLines []imageObj
 	var pages [][]string
@@ -82,8 +82,9 @@ func Text(env gui.Env, fontFaces map[string]font.Face, words chan<- string, file
 			if err != nil {
 				fmt.Println(errors.Unwrap(err))
 			}
-			content <- cont
+			// content <- cont
 			pages = makePages(cont.wrapped, LINES_PER_PAGE)
+			content <- pages
 			lineHeight = fontFaces["regular"].Metrics().Height.Ceil() * 2
 			textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
 			loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
@@ -91,22 +92,24 @@ func Text(env gui.Env, fontFaces map[string]font.Face, words chan<- string, file
 			fileLoaded = true
 			load <- fileLoaded
 		case pg := <-page:
-			if pg == "prev" {
-				if currentPage > 0 {
-					currentPage -= 1
+			if fileLoaded {
+				switch pg {
+				case "prev":
+					if currentPage > 0 {
+						currentPage -= 1
+					}
+					textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+					loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
+					env.Draw() <- loadText
+				case "next":
+					if currentPage < len(pages)-1 {
+						currentPage += 1
+					}
+					textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
+					loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
+					env.Draw() <- loadText
 				}
-				textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
-				loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
-				env.Draw() <- loadText
-			} else if pg == "next" {
-				if currentPage < len(pages)-1 {
-					currentPage += 1
-				}
-				textLines = formatTextImages(pages[currentPage], 0, MIN_X_TEXT, MARGIN, lineHeight, fontFaces["regular"])
-				loadText = drawTextLines(textLines, fontFaces["regular"], &textBounds)
-				env.Draw() <- loadText
 			}
-
 		case e, ok := <-env.Events():
 			if !ok {
 				close(env.Draw())
