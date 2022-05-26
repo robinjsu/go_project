@@ -86,8 +86,8 @@ class Window(Env):
         #     pass
 
         def dropCallback(win: glfw._GLFWwindow, paths):
-            for p in paths:
-                print(p)
+            pathDrop = PathDropEvent(paths[0])
+            self.sendEvent(pathDrop)
 
 
         glfw.set_cursor_pos_callback(self.win, cursorCallback)
@@ -191,8 +191,8 @@ class Window(Env):
         '''
         Begin drawing and event threads
         ''' 
+        self.drawStream.start()
         with self.getLock():
             self.getLock().notify_all()
-        self.drawStream.start()
         self.pollWinEvents()
         return

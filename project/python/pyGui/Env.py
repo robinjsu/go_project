@@ -4,7 +4,7 @@ import threading, random as rand
 from PIL import Image
 
 from .Channel import DrawChan, EventChan
-from .Event import InputType, MouseEvent, KeyEvent, BroadcastEvent
+from .Event import InputType, MouseEvent, KeyEvent, BroadcastEvent, PathDropEvent
 
 # TODO: how to poll for events in a non-blocking way, such that the env can write custom callbacks for when an event is received?
 class Env:
@@ -79,6 +79,12 @@ class Env:
         '''
         pass
 
+    def onPathDrop(self, event):
+        '''
+        Callback function that responds to an item's path being dragged and dropped over the window
+        '''
+        pass
+
     def drawImg(self, drawCommand: Callable[...,Image.Image]):
         '''
         Create drawing function that gets sent to the Window (main Env) for rendering.
@@ -115,6 +121,8 @@ class Env:
                     self.onMouseClick(event)
                 elif type(event) == KeyEvent:
                     self.onKeyPress(event)
+                elif type(event) == PathDropEvent:
+                    self.onPathDrop(event)
         threading.Thread(target=startThread, name=f'{name}', daemon=True).start() 
 
 

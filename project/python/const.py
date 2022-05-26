@@ -16,4 +16,5 @@ MARGIN = 5
 MAXLINES = 40
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 900
-
+TTF = '../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf'
+TTF_BOLD = '../../fonts/Anonymous_Pro/AnonymousPro-Bold.ttf'

@@ -18,11 +18,10 @@ class Display(Env):
         def drawBg(baseImg: Image.Image) -> Image.Image:
             mainPage = Image.new("RGBA", (self.box.x1, self.box.y1))
             drw = ImageDraw.ImageDraw(mainPage)
-            drw.rectangle((0,0,self.box.x1*.75,self.box.y1*.75), color.white, color.ultra)
+            drw.rectangle((0,0,self.box.x1,self.box.y1), color.white)
             baseImg.alpha_composite(mainPage)
             return baseImg
         return drawBg
     
-
-    def init(self):
+    def onPathDrop(self, event):
         self.drawImg(self.setBg())

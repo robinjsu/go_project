@@ -137,7 +137,7 @@ def formatText(text: str, charsPerWidth):
         idx = makeLineBreak(text[:charsPerWidth]) + 1
         line = text[:idx].rstrip(' \n')
         plainText.append(line)
-        while line != '':
+        while text != '':
             text = text[idx:]   
             if len(text) > charsPerWidth:
                 idx = makeLineBreak(text[:charsPerWidth]) + 1

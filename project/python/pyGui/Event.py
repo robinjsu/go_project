@@ -27,6 +27,9 @@ class KeyEvent(NamedTuple):
     key:    int
     action: int
 
+class PathDropEvent(NamedTuple):
+    path: str
+
 class BroadcastEvent(NamedTuple):
     event: BroadcastType
     obj: Any
