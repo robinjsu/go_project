@@ -67,13 +67,14 @@ func drawBtns(env gui.Env, prevBtn image.Rectangle, nextBtn image.Rectangle, r i
 	prev := setBtnText(prevBtn, "PREV", face)
 	next := setBtnText(nextBtn, "NEXT", face)
 
+	// TODO: fix the panic on draw channel!
 	for {
 		select {
 		case tick := <-ticker.C:
 			env.Draw() <- func(drw draw.Image) image.Rectangle {
-				draw.Draw(drw, prevBtn, &image.Uniform{gradient(&prevClr, tick)}, prevBtn.Min, draw.Src)
+				draw.Draw(drw, prevBtn, &image.Uniform{gradient(&prevClr, tick)}, prevBtn.Min, draw.Over)
 				draw.Draw(drw, prev.Bounds(), prev, prev.Bounds().Min, draw.Over)
-				draw.Draw(drw, nextBtn, &image.Uniform{gradient(&nextClr, tick)}, nextBtn.Min, draw.Src)
+				draw.Draw(drw, nextBtn, &image.Uniform{gradient(&nextClr, tick)}, nextBtn.Min, draw.Over)
 				draw.Draw(drw, next.Bounds(), next, next.Bounds().Min, draw.Over)
 				return r
 			}
@@ -83,20 +84,15 @@ func drawBtns(env gui.Env, prevBtn image.Rectangle, nextBtn image.Rectangle, r i
 	}
 }
 
-<<<<<<< HEAD
-func PagingBtns(env gui.Env, prev chan<- bool, next chan<- bool, faces map[string]font.Face, ready chan bool) {
+func PagingBtns(env gui.Env, page chan<- string, faces map[string]font.Face, load chan bool) {
 	done := make(chan bool)
-	btns := setBtnArea(buttonR, footer)
-	go drawBtns(env, btns[0], btns[1], footer, faces["bold"], done)
 
-=======
-func PagingBtns(env gui.Env, prev chan<- bool, next chan<- bool, faces map[string]font.Face, load chan bool) {
-	// loaded := false
-	done := make(chan bool)
-	btns := setBtnArea(buttonR, footer)
+	btns := setBtnArea(buttonR, image.Rectangle{
+		Min: footer.Min.Add(image.Pt((footer.Dx() / 2), 0)),
+		Max: footer.Max,
+	})
 
 	go drawBtns(env, btns[0], btns[1], footer, faces["bold"], done)
->>>>>>> d9e23d680a8a3438853f0ec414eda2564ef48d93
 	for {
 		select {
 		case e, ok := <-env.Events():
@@ -108,9 +104,9 @@ func PagingBtns(env gui.Env, prev chan<- bool, next chan<- bool, faces map[strin
 			switch e := e.(type) {
 			case win.MoDown:
 				if e.Point.In(btns[0]) {
-					prev <- true
+					page <- "prev"
 				} else if e.Point.In(btns[1]) {
-					next <- true
+					page <- "next"
 				}
 			}
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/draw"
+	"log"
 	"strings"
 
 	gui "github.com/faiface/gui"
@@ -55,7 +56,7 @@ func Define(env gui.Env, fontFaces map[string]font.Face, define <-chan string, s
 			word = strings.Trim(word, " ,.!?';:“”’\"()")
 			defs, err := getWord(word)
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 			if len(defs.Def) == 0 {
 				defs = Word{Word: "definition unavailable"}

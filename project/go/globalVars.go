@@ -44,4 +44,5 @@ var (
 	textBounds       = image.Rect(0, 0, 800, 900)
 	buttonR          = image.Rect(0, 0, 75, 30)
 	footer           = image.Rect(0, 900, 800, 1000)
+	audioDir         = "audio"
 )
