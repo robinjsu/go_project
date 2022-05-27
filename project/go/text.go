@@ -24,7 +24,7 @@ func drawTextLines(images []imageObj, face font.Face, bounds *image.Rectangle) f
 		page := *bounds
 		draw.Draw(drw, page, image.White, page.Min, draw.Src)
 		for _, obj := range images {
-			draw.Draw(drw, obj.placement, obj.img, image.Pt(0, 0), draw.Src)
+			draw.Draw(drw, obj.placement, obj.img, image.Pt(0, 0), draw.Over)
 		}
 		return page
 	}

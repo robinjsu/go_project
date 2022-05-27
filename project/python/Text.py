@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io, os, math, random as rand
 
 from pyGui import *
+from pyGui.Event import PathDropEvent
 # from pyGui.Event import BroadcastType
 from pyGui.utils import *
 from const import *
@@ -14,7 +15,7 @@ TODO:
 '''
 
 lineSpacing = 10
-fontSize = 24
+fontSize = 20
 input = Event.InputType()
 broadcast = Event.BroadcastType()
 color = Colors()
@@ -55,7 +56,7 @@ class Text(Env):
         self.font = loadFont(ttf, sz)
         self.pixelsPerLetter, letterHeight = self.font.getsize('A')
         self.charsPerWidth = self.padW // self.pixelsPerLetter
-        self.linesPerPage = int(math.floor(self.padH / (letterHeight + lineSpacing)))
+        self.linesPerPage = int(math.floor(self.padH / (letterHeight * 2 )))
 
 
     def setTextPos(self, line: str, anchor: Point):
@@ -138,17 +139,18 @@ class Text(Env):
                     return (highlightWord, wrd)
         return None, None
 
+
     def onMouseClick(self, event: MouseEvent):
         '''
         Callback function that responds to a mouse button being pressed or released.
         :param event: a MouseEvent object that represents the mouse button and action that occurred.
         '''
         pt = Point(event.xpos, event.ypos)
-        if event.action == input.MouseDown:
+        if event.action == input.Press:
             if self.bounds.contains(pt):
                 highlightFunc, word = self.findWord(pt)
                 if highlightFunc != None:
-                    self.events.send(Broadcast(broadcast.DEFINE, word))
+                    self.sendEvent(BroadcastEvent(broadcast.DEFINE, word))
                     self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
                     self.drawImg(highlightFunc)
 
@@ -158,25 +160,25 @@ class Text(Env):
         Callback function that responds to a key being pressed or released.
         :param event: a KeyEvent object that represents the key pressed and action that occurred.
         '''
-        if keyEvent.key == input.ArrowDown and keyEvent.action == 1:
+        if keyEvent.key == input.ArrowDown and keyEvent.action == input.Press:
             if self.page < self.numPages-1:
                 self.page += 1
             self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
-        elif keyEvent.key == input.ArrowUp and keyEvent.action == 1:
+        elif keyEvent.key == input.ArrowUp and keyEvent.action == input.Press:
             if self.page > 0:
                 self.page -= 1
             self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
 
 
-    def resize(self):
-        self.padW = self.width - (self.padding * 2)
-        self.padH = self.width - (self.padding * 2)
+    def onPathDrop(self, event: PathDropEvent):
+        self.page = 0
+        if event.path.endswith('txt'):
+            text, _ = loadFile(event.path)
+            self.plainText = formatText(text, self.charsPerWidth)
+            self.numPages = int(math.ceil(len(self.plainText) / self.linesPerPage))
+            self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
         
     
     def init(self):
-        self.page = 0
         self.setFont('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf', fontSize)
-        text, _ = loadFile('alice.txt')
-        self.plainText = formatText(text, self.charsPerWidth)
-        self.numPages = int(math.ceil(len(self.plainText) / self.linesPerPage))
-        self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
+        
