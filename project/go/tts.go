@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	tts "cloud.google.com/go/texttospeech/apiv1"
@@ -125,7 +126,7 @@ func playBack(audio *os.File, start <-chan bool, pause <-chan bool, restart <-ch
 
 func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 	var pages [][]string
-
+	var streamers []beep.StreamSeekCloser
 	audioStarted := false
 	paused := false
 	audioBtns := getBtnIcons()
@@ -135,7 +136,6 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 	restart := make(chan bool)
 	pause := make(chan bool)
 	done := make(chan bool)
-
 	pg := 0
 
 	for {
@@ -145,8 +145,20 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 				env.Draw() <- audioBtn
 			}
 		case pages = <-content:
-			fmt.Println(pages[0])
-			// getSpeech(string(strings.Join(pages[0], " ")), fmt.Sprintf("%s/pg-%v.mp3", audioDir, i))
+			// fmt.Println(pages[0])
+			for i, page := range pages {
+				audioFile := fmt.Sprintf("%s/pg-%v.mp3", audioDir, i)
+				getSpeech(string(strings.Join(page, " ")), audioFile)
+				audio, err := os.Open(audioFile)
+				if err != nil {
+					log.Fatal(FileError{audioFile, err})
+				}
+				stream, _, err := mp3.Decode(audio)
+				if err != nil {
+					log.Fatal(FileError{audioFile, err})
+				}
+				streamers = append(streamers, stream)
+			}
 		case e, ok := <-env.Events():
 			if !ok {
 				// audioFiles, err := os.ReadDir(audioDir)
@@ -189,27 +201,16 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 					if pg > 0 {
 						pg--
 						done <- true
-						audio, err := os.Open(fmt.Sprintf("%s/pg-%v.mp3", audioDir, pg))
-						if err != nil {
-							log.Fatal(err)
-						}
-						streamer, _, err := mp3.Decode(audio)
-						if err != nil {
-							log.Fatal(err)
-						}
-						newStreamer <- streamer
+						streamers[pg].Seek(0)
+						newStreamer <- streamers[pg]
 					}
 				case e.Point.In(iconsR[3]):
 					fmt.Println("next")
 					if pg < len(pages)-1 {
 						pg++
 						done <- true
-						audio, err := os.Open(fmt.Sprintf("%s/pg-%v.mp3", audioDir, pg))
-						if err != nil {
-							log.Fatal(err)
-						}
-						streamer, _, _ := mp3.Decode(audio)
-						newStreamer <- streamer
+						streamers[pg].Seek(0)
+						newStreamer <- streamers[pg]
 					}
 				}
 			case win.KbDown:
