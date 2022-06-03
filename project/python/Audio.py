@@ -1,20 +1,26 @@
 from typing import List, Callable
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io, os, math, random as rand
+from google.cloud import texttospeech as tts
 
 from pyGui import *
 from pyGui.Event import PathDropEvent
-# from pyGui.Event import BroadcastType
+from pyGui.Event import BroadcastType
 from pyGui.utils import *
 from const import *
 
 
 colors = Colors()
+input = Event.InputType()
+bdcast = Event.BroadcastType()
+audioDir = './audio'
 class Audio(Env):
     bounds: Box
     icons: List[Image.Image]
     iconsBounds: List[Box]
     anchor: Point
+    ttsClient: tts.TextToSpeechClient
+    
 
     def __init__(self, box: Box, id=0, name=''):
         super().__init__(id=id, threadName=name)
@@ -55,10 +61,49 @@ class Audio(Env):
             return drw
         
         return draw
+    
+    def loadTTS(self, textBody, name):
+        voice = tts.VoiceSelectionParams(
+                    language_code="en-US", ssml_gender=tts.SsmlVoiceGender.NEUTRAL)
+        ttsRequest = tts.SynthesizeSpeechRequest(
+            input=tts.SynthesisInput(text=textBody),
+            voice=voice,
+            audio_config=tts.AudioConfig(audio_encoding=tts.AudioEncoding.MP3)
+        )
+        ttsResponse = self.ttsClient.synthesize_speech(ttsRequest)
 
+        with open(name, 'wb') as out:
+            out.write(ttsResponse.audio_content)
+
+
+    # def onBroadcast(self, event: BroadcastEvent):
+    #     if event.event == bdcast.TEXT:
+    #         assert self.ttsClient is not None
+    #         linesPerPage = (event.obj)['maxLines']
+    #         textBody = (event.obj)['textBody']
+    #         pages = math.ceil(len(textBody) / linesPerPage)
+            
+    #         for p in range(pages):
+    #             textPg = ' '.join(textBody[:linesPerPage])
+    #             self.loadTTS(textPg, f'{audioDir}/pg-{p}.mp3')
+    #             textBody = textBody[linesPerPage:]
+
+
+    def onMouseClick(self, event: MouseEvent):
+        pt = Point(event.xpos, event.ypos)
+        if event.action == input.Press:
+            if self.iconsBounds[0].contains(pt):
+                print('play')
+            elif self.iconsBounds[1].contains(pt):
+                print('pause')
+            elif self.iconsBounds[2].contains(pt):
+                print('prev')
+            elif self.iconsBounds[3].contains(pt):
+                print('next')
 
     
     def init(self):
         self.icons = self.loadIcons('./images/play.png', './images/pause.png', './images/prev.png', './images/next.png')
         self.iconsBounds = self.setIcons(self.icons[0].size)
         self.drawImg(self.drawIcons())
+        self.ttsClient = tts.TextToSpeechClient()

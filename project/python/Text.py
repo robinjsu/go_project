@@ -177,6 +177,7 @@ class Text(Env):
             self.plainText = formatText(text, self.charsPerWidth)
             self.numPages = int(math.ceil(len(self.plainText) / self.linesPerPage))
             self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
+            self.sendEvent(BroadcastEvent(broadcast.TEXT, {'textBody': self.plainText.copy(), 'maxLines': self.linesPerPage}))
         
     
     def init(self):
