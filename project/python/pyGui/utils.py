@@ -50,12 +50,16 @@ class Box:
     def resize(self, p: Point):
         self.x1 += p.x
         self.y1 += p.y
+
+        return self
     
     def move(self, p: Point):
         self.x0 += p.x
         self.y0 += p.y
         self.x1 += p.x
         self.y1 += p.y
+
+        return self
     
     def copy(self):
         return Box(self.x0, self.y0, self.x1, self.y1)

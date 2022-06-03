@@ -6,6 +6,7 @@ from Define import Define
 from WordList import WordList
 from DropFile import DropFile
 from Paging import Paging
+from Audio import Audio
 from const import *
 from pyGui.utils import Box, Point
 
@@ -38,11 +39,12 @@ def start():
 
     mux = Mux(win)
     # mux.addEnv(Display(textBox, id=1, name="DisplayThread"))
-    mux.addEnv(Text(textBox, id=2, name="TextThread"))
-    mux.addEnv(Define(defBox, id=3, name="DefinitionThread"))
-    mux.addEnv(WordList(None, id=4, name="WordListThread"))
-    mux.addEnv(DropFile(dispBox, TTF_BOLD, id=5, name="PathDropThread"))
-    mux.addEnv(Paging(Point(100, 25), Box(0, textBox.y1, textBox.x1, dispBox.y1), TTF, id=6, name="PagingThread"))
+    mux.addEnv(Text(textBox, id=2, name='TextThread'))
+    mux.addEnv(Define(defBox, id=3, name='DefinitionThread'))
+    mux.addEnv(WordList(None, id=4, name='WordListThread'))
+    mux.addEnv(DropFile(dispBox, TTF_BOLD, id=5, name='PathDropThread'))
+    mux.addEnv(Paging(Point(100, 25), Box(0, textBox.y1, textBox.x1, dispBox.y1), TTF, id=6, name='PagingThread'))
+    mux.addEnv(Audio(Box(textBox.x0, textBox.y1, textBox.x1,  WINDOW_HEIGHT), id=7, name='AudioThread'))
 
     # mux.run() will start up all envs that have been added to it
     mux.run()
