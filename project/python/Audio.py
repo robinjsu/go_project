@@ -2,6 +2,7 @@ from typing import List, Callable
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io, os, math, random as rand
 from google.cloud import texttospeech as tts
+import pygame
 
 from pyGui import *
 from pyGui.Event import PathDropEvent
@@ -14,17 +15,25 @@ colors = Colors()
 input = Event.InputType()
 bdcast = Event.BroadcastType()
 audioDir = './audio'
+freq = 24000
+channels = 1
 class Audio(Env):
     bounds: Box
     icons: List[Image.Image]
     iconsBounds: List[Box]
     anchor: Point
     ttsClient: tts.TextToSpeechClient
+    pages: int
+    currentPg: int
+    paused: bool
     
 
     def __init__(self, box: Box, id=0, name=''):
         super().__init__(id=id, threadName=name)
         self.bounds = box.move(Point(MARGIN, 0))
+        pygame.mixer.init(frequency=freq, channels=channels)
+        self.currentPg = 0
+        self.paused = False
 
 
     def loadIcons(self, *icons) -> List[Image.Image]:
@@ -76,30 +85,45 @@ class Audio(Env):
             out.write(ttsResponse.audio_content)
 
 
-    # def onBroadcast(self, event: BroadcastEvent):
-    #     if event.event == bdcast.TEXT:
-    #         assert self.ttsClient is not None
-    #         linesPerPage = (event.obj)['maxLines']
-    #         textBody = (event.obj)['textBody']
-    #         pages = math.ceil(len(textBody) / linesPerPage)
+
+    def onBroadcast(self, event: BroadcastEvent):
+        if event.event == bdcast.TEXT:
+            assert self.ttsClient is not None
+            linesPerPage = (event.obj)['maxLines']
+            textBody = (event.obj)['textBody']
+            self.pages = math.ceil(len(textBody) / linesPerPage)
             
-    #         for p in range(pages):
-    #             textPg = ' '.join(textBody[:linesPerPage])
-    #             self.loadTTS(textPg, f'{audioDir}/pg-{p}.mp3')
-    #             textBody = textBody[linesPerPage:]
+            # for p in range(self.pages):
+            #     textPg = ' '.join(textBody[:linesPerPage])
+            #     self.loadTTS(textPg, f'{audioDir}/pg-{p}.mp3')
+            #     textBody = textBody[linesPerPage:]
+            pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
 
 
     def onMouseClick(self, event: MouseEvent):
         pt = Point(event.xpos, event.ypos)
         if event.action == input.Press:
             if self.iconsBounds[0].contains(pt):
-                print('play')
+                if self.paused:
+                    self.paused = False
+                    pygame.mixer.music.play()
             elif self.iconsBounds[1].contains(pt):
-                print('pause')
+                if not self.paused:
+                    self.paused = True
+                    pygame.mixer.music.pause()
+                else:
+                    self.paused = False
+                    pygame.mixer.music.unpause()
             elif self.iconsBounds[2].contains(pt):
-                print('prev')
+                if self.currentPg > 0:
+                    self.currentPg -= 1
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
             elif self.iconsBounds[3].contains(pt):
-                print('next')
+                if self.currentPg < self.pages:
+                    self.currentPg += 1
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
 
     
     def init(self):

@@ -153,6 +153,16 @@ class Text(Env):
                     self.sendEvent(BroadcastEvent(broadcast.DEFINE, word))
                     self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
                     self.drawImg(highlightFunc)
+    
+    def pageNext(self):
+        if self.page < self.numPages-1:
+                self.page += 1
+        self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
+    
+    def pagePrev(self):
+        if self.page > 0:
+                self.page -= 1
+        self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
 
 
     def onKeyPress(self, keyEvent: KeyEvent):
@@ -161,14 +171,15 @@ class Text(Env):
         :param event: a KeyEvent object that represents the key pressed and action that occurred.
         '''
         if keyEvent.key == input.ArrowDown and keyEvent.action == input.Press:
-            if self.page < self.numPages-1:
-                self.page += 1
-            self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
+            self.pagePrev()
+            # if self.page < self.numPages-1:
+            #     self.page += 1
+            # self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
         elif keyEvent.key == input.ArrowUp and keyEvent.action == input.Press:
-            if self.page > 0:
-                self.page -= 1
-            self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
-
+            self.pageNext()
+            # if self.page > 0:
+            #     self.page -= 1
+            # self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
 
     def onPathDrop(self, event: PathDropEvent):
         self.page = 0
@@ -179,6 +190,11 @@ class Text(Env):
             self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
             self.sendEvent(BroadcastEvent(broadcast.TEXT, {'textBody': self.plainText.copy(), 'maxLines': self.linesPerPage}))
         
+    def onBroadcast(self, event: BroadcastEvent):
+        if event.event == broadcast.PREV:
+            self.pagePrev()
+        elif event.event == broadcast.NEXT:
+            self.pageNext()
     
     def init(self):
         self.setFont('../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf', fontSize)
