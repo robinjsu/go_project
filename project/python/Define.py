@@ -68,7 +68,7 @@ class Define(Env):
 
     def setDefSection(self, definitions):
         def drawSection(base: Image.Image) -> Image.Image:
-            bg = Image.new("RGBA", (self.padW, int(self.padH - (self.pixelsPerChar.y * 3))), color.lightBlue)
+            bg = Image.new("RGBA", (self.padW, int(self.padH - (self.pixelsPerChar.y * 3))), color.paleBlue)
             drawCtx = ImageDraw.ImageDraw(bg)
             anchor = Point(MARGIN,MARGIN)
             for defn in definitions:
@@ -88,6 +88,7 @@ class Define(Env):
             base.alpha_composite(bg, (self.anchor.x, int(self.anchor.y + (self.pixelsPerChar.y * 3))))
             return base
         return drawSection
+            
 
     def onBroadcast(self, event: BroadcastEvent):
         if event.event == broadcast.DEFINE:
@@ -95,7 +96,7 @@ class Define(Env):
             defs = event.obj.getDefinitions()
             self.drawImg(self.setWordHeader())
             if defs == [] or defs is None:
-                print('no definitions retrieved')
+                self.drawImg(self.setDefSection([('none', 'no definitions retrieved')]))
             else:
                 self.drawImg(self.setDefSection(defs))
                 self.sendEvent(BroadcastEvent(broadcast.SAVE, event.obj))

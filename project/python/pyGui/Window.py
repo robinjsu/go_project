@@ -36,7 +36,6 @@ class Window(Env):
     def __init__(self, options: Options):
         super().__init__(True)
         assert (self.eventChan() is not None) and (self.drawChan() is not None), f'events and draw channels not properly initialized'
-        # self.win = glfw.create_window()
         self.options = options
         self.initGLFW()
         x, y = glfw.get_window_content_scale(self.win)

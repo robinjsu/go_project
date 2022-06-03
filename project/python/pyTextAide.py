@@ -1,6 +1,5 @@
 from pyGui import Window, Options, Mux
 import random as rand, time
-from Display import Display
 from Text import Text
 from Define import Define
 from WordList import WordList
@@ -12,17 +11,13 @@ from pyGui.utils import Box, Point
 
 options: Options
 mux: Mux
-display: Display
 text: Text
 win: Window
 
-# TODO: where to put this?
 rand.seed(time.time())
-
 dispBox = None
 textBox = None
 defBox = None
-paging = None
 
 def setDimensions(window: Window):
     assert window.image != None, 'window and associated drawing image are not initialized'
@@ -36,17 +31,16 @@ def start():
     options = Options("PyTextAide", WINDOW_WIDTH, WINDOW_HEIGHT, False, None)
     win = Window(options)
     dispBox, textBox, defBox = setDimensions(win)
-
     mux = Mux(win)
-    # mux.addEnv(Display(textBox, id=1, name="DisplayThread"))
+
     mux.addEnv(Text(textBox, id=2, name='TextThread'))
     mux.addEnv(Define(defBox, id=3, name='DefinitionThread'))
     mux.addEnv(WordList(None, id=4, name='WordListThread'))
     mux.addEnv(DropFile(dispBox, TTF_BOLD, id=5, name='PathDropThread'))
-    mux.addEnv(Paging(Point(100, 25), Box(0, textBox.y1, textBox.x1, dispBox.y1), TTF, id=6, name='PagingThread'))
+    mux.addEnv(Paging(Point(100, 25), Box(0, textBox.y1, textBox.x1, dispBox.y1), TTF_BOLD, id=6, name='PagingThread'))
     mux.addEnv(Audio(Box(textBox.x0, textBox.y1, textBox.x1,  WINDOW_HEIGHT), id=7, name='AudioThread'))
 
-    # mux.run() will start up all envs that have been added to it
+    # mux.run will start up all envs that have been added to it
     mux.run()
     win.run()
     

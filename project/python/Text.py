@@ -3,8 +3,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io, os, math, random as rand
 
 from pyGui import *
-from pyGui.Event import PathDropEvent
-# from pyGui.Event import BroadcastType
+from pyGui.Event import PathDropEvent, BroadcastType
 from pyGui.utils import *
 from const import *
 
@@ -16,8 +15,8 @@ TODO:
 
 lineSpacing = 10
 fontSize = 20
-input = Event.InputType()
-broadcast = Event.BroadcastType()
+input = InputType()
+broadcast = BroadcastType()
 color = Colors()
 class Text(Env):
     bounds: Box
@@ -101,7 +100,7 @@ class Text(Env):
 
         def drawText(baseImg: Image.Image) -> Image.Image:
             paddedBox = ImageOps.pad(
-                Image.new("RGBA", (self.width, self.height), color.white), (self.padW, self.padH)
+                Image.new("RGBA", (self.width, self.height), color.light), (self.padW, self.padH)
             )
             drawCtx = ImageDraw.ImageDraw(paddedBox)
             for l in self.lines:
@@ -172,14 +171,9 @@ class Text(Env):
         '''
         if keyEvent.key == input.ArrowDown and keyEvent.action == input.Press:
             self.pagePrev()
-            # if self.page < self.numPages-1:
-            #     self.page += 1
-            # self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
         elif keyEvent.key == input.ArrowUp and keyEvent.action == input.Press:
             self.pageNext()
-            # if self.page > 0:
-            #     self.page -= 1
-            # self.drawImg(self.setText(self.plainText[self.page*self.linesPerPage:((self.page*self.linesPerPage)+self.linesPerPage)]))
+
 
     def onPathDrop(self, event: PathDropEvent):
         self.page = 0

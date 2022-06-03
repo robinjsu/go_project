@@ -1,19 +1,18 @@
 from typing import List, Callable
-from PIL import Image, ImageDraw, ImageFont, ImageOps
-import io, os, math, random as rand
+from PIL import Image
+import math, random as rand
 from google.cloud import texttospeech as tts
 import pygame
 
 from pyGui import *
-from pyGui.Event import PathDropEvent
-from pyGui.Event import BroadcastType
+from pyGui.Event import BroadcastType, InputType
 from pyGui.utils import *
 from const import *
 
 
 colors = Colors()
-input = Event.InputType()
-bdcast = Event.BroadcastType()
+input = InputType()
+bdcast = BroadcastType()
 audioDir = './audio'
 freq = 24000
 channels = 1
@@ -28,7 +27,7 @@ class Audio(Env):
     paused: bool
     
 
-    def __init__(self, box: Box, id=0, name=''):
+    def __init__(self, box: Box, id=rand.randint(0,100), name=''):
         super().__init__(id=id, threadName=name)
         self.bounds = box.move(Point(MARGIN, 0))
         pygame.mixer.init(frequency=freq, channels=channels)
@@ -85,7 +84,6 @@ class Audio(Env):
             out.write(ttsResponse.audio_content)
 
 
-
     def onBroadcast(self, event: BroadcastEvent):
         if event.event == bdcast.TEXT:
             assert self.ttsClient is not None
@@ -105,7 +103,8 @@ class Audio(Env):
         if event.action == input.Press:
             if self.iconsBounds[0].contains(pt):
                 if self.paused:
-                    self.paused = False
+                    pygame.mixer.music.unpause()
+                else:
                     pygame.mixer.music.play()
             elif self.iconsBounds[1].contains(pt):
                 if not self.paused:
@@ -119,11 +118,13 @@ class Audio(Env):
                     self.currentPg -= 1
                     pygame.mixer.music.stop()
                     pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
+                    self.paused = False
             elif self.iconsBounds[3].contains(pt):
                 if self.currentPg < self.pages:
                     self.currentPg += 1
                     pygame.mixer.music.stop()
                     pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
+                    self.paused = False
 
     
     def init(self):

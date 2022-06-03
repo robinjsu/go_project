@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 import time, threading, random as rand
 
 from pyGui import *
-from pyGui.Event import PathDropEvent, BroadcastType, BroadcastEvent, InputType
+from pyGui.Event import BroadcastType, BroadcastEvent, InputType
 from pyGui.utils import *
 from const import *
 
@@ -37,9 +37,9 @@ class Paging(Env):
         npadX = (self.btnSize.x - nSz[0]) // 2
         npadY = (self.btnSize.y - nSz[1]) // 2 
 
-        colorP = colors.blue
-        pColor = colors.white
-        colorN = colors.white
+        colorP = colors.ultra
+        pColor = colors.light
+        colorN = colors.light
         nColor = colors.black
 
         while True:
@@ -49,8 +49,8 @@ class Paging(Env):
                 pDrw = ImageDraw.ImageDraw(prev)
                 nDrw = ImageDraw.ImageDraw(next)
 
-                pDrw.text((ppadX, ppadY), 'PREV', pColor)
-                nDrw.text((npadX, npadY), 'NEXT', nColor)
+                pDrw.text((ppadX, ppadY), 'PREV', pColor, font=self.font)
+                nDrw.text((npadX, npadY), 'NEXT', nColor, font=self.font)
 
                 baseImg.alpha_composite(prev, (self.btnPrev.x0, self.btnPrev.y0))
                 baseImg.alpha_composite(next, (self.btnNext.x0, self.btnNext.y0))

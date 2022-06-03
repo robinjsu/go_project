@@ -16,6 +16,9 @@ class BroadcastType(NamedTuple):
     CLOSE = -1
     DEFINE = 0
     SAVE = 1
+    TEXT = 2
+    PREV = 3
+    NEXT = 4
 
 class MouseEvent(NamedTuple):
     button: int
