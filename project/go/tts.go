@@ -58,7 +58,7 @@ func drawAudio(images []image.Image) (func(draw.Image) image.Rectangle, []image.
 	return drawPNG, iconsR
 }
 
-func getSpeech(content string, outFile string) string {
+func getSpeech(content string, outDir string, outFile string) string {
 	ctx := context.Background()
 
 	ttsClient, err := tts.NewClient(ctx)
@@ -82,6 +82,7 @@ func getSpeech(content string, outFile string) string {
 
 	resp, err := ttsClient.SynthesizeSpeech(ctx, &req)
 	if err != nil {
+		fmt.Println(err)
 		log.Fatal(err)
 	}
 
@@ -93,7 +94,6 @@ func getSpeech(content string, outFile string) string {
 	return outFile
 }
 
-// TODO: streamer still nto working!
 func playBack(audio *os.File, start <-chan bool, pause <-chan bool, restart <-chan bool, done <-chan bool, newStream <-chan beep.StreamSeekCloser) {
 	var controller *beep.Ctrl
 	var streamer beep.StreamSeekCloser
@@ -127,6 +127,8 @@ func playBack(audio *os.File, start <-chan bool, pause <-chan bool, restart <-ch
 func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 	var pages [][]string
 	var streamers []beep.StreamSeekCloser
+	var title string
+	var authorized bool
 	audioStarted := false
 	paused := false
 	audioBtns := getBtnIcons()
@@ -138,6 +140,14 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 	done := make(chan bool)
 	pg := 0
 
+	creds, _ := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS")
+	if creds == "" {
+		audioDir = "example_audio"
+		authorized = false
+	} else {
+		authorized = true
+	}
+
 	for {
 		select {
 		case ready := <-load:
@@ -145,19 +155,22 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 				env.Draw() <- audioBtn
 			}
 		case pages = <-content:
-			// fmt.Println(pages[0])
 			for i, page := range pages {
-				audioFile := fmt.Sprintf("%s/pg-%v.mp3", audioDir, i)
-				getSpeech(string(strings.Join(page, " ")), audioFile)
-				audio, err := os.Open(audioFile)
-				if err != nil {
-					log.Fatal(FileError{audioFile, err})
+				if page != nil {
+					audioFile := fmt.Sprintf("%s/%s/pg-%v.mp3", audioDir, title, i)
+					if authorized {
+						getSpeech(string(strings.Join(page, " ")), title, audioFile)
+					}
+					audio, err := os.Open(audioFile)
+					if err != nil {
+						log.Fatal(FileError{audioFile, err})
+					}
+					stream, _, err := mp3.Decode(audio)
+					if err != nil {
+						log.Fatal(FileError{audioFile, err})
+					}
+					streamers = append(streamers, stream)
 				}
-				stream, _, err := mp3.Decode(audio)
-				if err != nil {
-					log.Fatal(FileError{audioFile, err})
-				}
-				streamers = append(streamers, stream)
 			}
 		case e, ok := <-env.Events():
 			if !ok {
@@ -175,14 +188,13 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 			case win.MoDown:
 				switch {
 				case e.Point.In(iconsR[0]):
-					fmt.Println("play")
 					if audioStarted && paused == false {
 						restart <- true
 					} else if audioStarted && paused == true {
 						paused = false
 						pause <- false
 					} else {
-						audio, err := os.Open(fmt.Sprintf("%s/pg-%v.mp3", audioDir, pg))
+						audio, err := os.Open(fmt.Sprintf("%s/%s/pg-%v.mp3", audioDir, title, pg))
 						if err != nil {
 							log.Fatal(err)
 						}
@@ -193,11 +205,9 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 						audioStarted = true
 					}
 				case e.Point.In(iconsR[1]):
-					fmt.Println("pause")
 					paused = true
 					pause <- paused
 				case e.Point.In(iconsR[2]):
-					fmt.Println("prev")
 					if pg > 0 {
 						pg--
 						done <- true
@@ -205,7 +215,6 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 						newStreamer <- streamers[pg]
 					}
 				case e.Point.In(iconsR[3]):
-					fmt.Println("next")
 					if pg < len(pages)-1 {
 						pg++
 						done <- true
@@ -218,6 +227,17 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 					paused = !paused
 					pause <- paused
 				}
+			case win.PathDrop:
+				path := e.FilePath
+				dirs := strings.Split(path, "/")
+				title = strings.TrimSuffix(dirs[len(dirs)-1], ".txt")
+				if _, err := os.Stat(fmt.Sprintf("%s", audioDir)); err != nil {
+					err = os.Mkdir(fmt.Sprintf("%s", audioDir), 0777)
+					err = os.Mkdir(fmt.Sprintf("%s/%s", audioDir, title), 0777)
+				} else if _, err = os.Stat(fmt.Sprintf("%s/%s", audioDir, title)); err != nil {
+					err = os.Mkdir(fmt.Sprintf("%s/%s", audioDir, title), 0777)
+				}
+
 			}
 		}
 

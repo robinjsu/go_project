@@ -26,7 +26,7 @@ type FileError struct {
 }
 
 func (fs FileError) Error() string {
-	return fmt.Sprintf("error in file handling - %s", fs.err)
+	return fmt.Sprintf("error in handling file: %s - %s", fs.filename, fs.err)
 }
 
 type ReadError struct {

@@ -2,12 +2,24 @@ package main
 
 import (
 	"log"
+	"os"
 
 	gui "github.com/faiface/gui"
 	win "github.com/faiface/gui/win"
 
 	"github.com/faiface/mainthread"
 )
+
+func init() {
+	_, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS")
+	if !ok {
+		log.Println("no google credentials supplied")
+	}
+	_, ok = os.LookupEnv("DICT_API_KEY")
+	if !ok {
+		log.Println("no dictionary api key supplied")
+	}
+}
 
 func run() {
 	// create GUI window (not resizable for now)
@@ -43,7 +55,7 @@ func run() {
 	go Define(mux.MakeEnv(), copyFonts(fontFaces), define, save)
 	go WordList(mux.MakeEnv(), save)
 	go Load(mux.MakeEnv(), largeFont["bold"], filepath)
-	// go TextToSpeech(mux.MakeEnv(), load, text)
+	go TextToSpeech(mux.MakeEnv(), load, text)
 	go PagingBtns(mux.MakeEnv(), page, fontFaces, load)
 
 	// main application loop

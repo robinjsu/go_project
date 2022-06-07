@@ -82,7 +82,6 @@ func Text(env gui.Env, fontFaces map[string]font.Face, words chan<- string, file
 			if err != nil {
 				fmt.Println(errors.Unwrap(err))
 			}
-			// content <- cont
 			pages = makePages(cont.wrapped, LINES_PER_PAGE)
 			content <- pages
 			lineHeight = fontFaces["regular"].Metrics().Height.Ceil() * 2

@@ -44,8 +44,8 @@ type Definition struct {
 }
 
 func getDef(lookup string) (Word, error) {
-	DICT_KEY := os.Getenv("DICT_API_KEY")
-	if DICT_KEY == "" {
+	DICT_KEY, ok := os.LookupEnv("DICT_API_KEY")
+	if !ok {
 		return Word{}, errors.New("API key missing")
 	}
 
