@@ -45,14 +45,11 @@ func setBtnText(btn image.Rectangle, text string, face font.Face) draw.Image {
 	}
 
 	btnTxt.DrawString(text)
-
 	return insetImg
-
 }
 
 func drawBtns(env gui.Env, prevBtn image.Rectangle, nextBtn image.Rectangle, r image.Rectangle, face font.Face, done chan bool) {
 	ticker := time.NewTicker(time.Millisecond)
-	defer ticker.Stop()
 	counter := 0.0
 
 	prevClr := PRUSSIAN_BLUE
@@ -67,7 +64,6 @@ func drawBtns(env gui.Env, prevBtn image.Rectangle, nextBtn image.Rectangle, r i
 	prev := setBtnText(prevBtn, "PREV", face)
 	next := setBtnText(nextBtn, "NEXT", face)
 
-	// TODO: fix the panic on draw channel!
 	for {
 		select {
 		case tick := <-ticker.C:
@@ -79,6 +75,7 @@ func drawBtns(env gui.Env, prevBtn image.Rectangle, nextBtn image.Rectangle, r i
 				return r
 			}
 		case <-done:
+			ticker.Stop()
 			break
 		}
 	}
