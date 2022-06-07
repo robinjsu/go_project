@@ -1,5 +1,5 @@
 from pyGui import Window, Options, Mux
-import random as rand, time
+import random as rand, time, os
 from Text import Text
 from Define import Define
 from WordList import WordList
@@ -38,9 +38,9 @@ def start():
     mux.addEnv(WordList(None, id=4, name='WordListThread'))
     mux.addEnv(DropFile(dispBox, TTF_BOLD, id=5, name='PathDropThread'))
     mux.addEnv(Paging(Point(100, 25), Box(0, textBox.y1, textBox.x1, dispBox.y1), TTF_BOLD, id=6, name='PagingThread'))
-    mux.addEnv(Audio(Box(textBox.x0, textBox.y1, textBox.x1,  WINDOW_HEIGHT), id=7, name='AudioThread'))
+    mux.addEnv(Audio(Box(textBox.x0, textBox.y1, textBox.x1,  dispBox.y1), id=7, name='AudioThread'))
 
-    # mux.run will start up all envs that have been added to it
+    # mux.run starts up all envs that have been added to it
     mux.run()
     win.run()
     

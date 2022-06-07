@@ -16,7 +16,7 @@ class DropFile(Env):
     def __init__(self, box, fontFile, id=rand.randint(0,100), name=''):
         super().__init__(id=id, threadName=name)
         self.box = box
-        self.fontSize = 20
+        self.fontSize = TITLE_SZ
         self.font = loadFont(fontFile, self.fontSize)
     
     def setSplash(self) -> Callable[..., Image.Image]:
@@ -29,6 +29,7 @@ class DropFile(Env):
             return baseImg
 
         return drawSplash
+        
 
     def init(self):
         self.drawImg(self.setSplash())

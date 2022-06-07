@@ -5,17 +5,16 @@ from google.cloud import texttospeech as tts
 import pygame
 
 from pyGui import *
-from pyGui.Event import BroadcastType, InputType
+from pyGui.Event import BroadcastType, InputType, PathDropEvent
 from pyGui.utils import *
 from const import *
-
 
 colors = Colors()
 input = InputType()
 bdcast = BroadcastType()
-audioDir = './audio'
 freq = 24000
 channels = 1
+
 class Audio(Env):
     bounds: Box
     icons: List[Image.Image]
@@ -25,15 +24,23 @@ class Audio(Env):
     pages: int
     currentPg: int
     paused: bool
+    authorized: bool
+    title: str
+    audioDir: str
     
-
     def __init__(self, box: Box, id=rand.randint(0,100), name=''):
         super().__init__(id=id, threadName=name)
         self.bounds = box.move(Point(MARGIN, 0))
         pygame.mixer.init(frequency=freq, channels=channels)
         self.currentPg = 0
         self.paused = False
-
+        try:
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+            self.authorized = True
+            self.audioDir = AUDIO_DIR
+        except:
+            self.authorized = False
+            self.audioDir = './example_audio'
 
     def loadIcons(self, *icons) -> List[Image.Image]:
         playbackIcons = []
@@ -44,8 +51,10 @@ class Audio(Env):
         
         return playbackIcons
     
+
     def getIconBounds(self, anchor: Point, icon: Image.Image) -> Box:
         return Box(anchor.x, anchor.y, anchor.x + icon.size[0], anchor.y + icon.size[1])
+
 
     def setIcons(self, iconSize: tuple) -> List[Box]:
         iconsPos = []
@@ -61,6 +70,7 @@ class Audio(Env):
         
         return iconsPos
     
+
     def drawIcons(self) -> Callable[..., Image.Image]:
         def draw(drw: Image.Image) -> Image.Image:
             for ic in range(len(self.icons)):
@@ -70,6 +80,7 @@ class Audio(Env):
         
         return draw
     
+
     def loadTTS(self, textBody, name):
         voice = tts.VoiceSelectionParams(
                     language_code="en-US", ssml_gender=tts.SsmlVoiceGender.NEUTRAL)
@@ -79,23 +90,30 @@ class Audio(Env):
             audio_config=tts.AudioConfig(audio_encoding=tts.AudioEncoding.MP3)
         )
         ttsResponse = self.ttsClient.synthesize_speech(ttsRequest)
+        
+        if not os.path.exists(f'{self.audioDir}'):
+            os.mkdir(f'{self.audioDir}')
+            os.mkdir(f'{self.audioDir}/{self.title}')
+        elif not os.path.exists(f'{self.audioDir}/{self.title}'):
+            os.mkdir(f'{self.audioDir}/{self.title}')
 
         with open(name, 'wb') as out:
             out.write(ttsResponse.audio_content)
 
 
     def onBroadcast(self, event: BroadcastEvent):
-        if event.event == bdcast.TEXT:
-            assert self.ttsClient is not None
-            linesPerPage = (event.obj)['maxLines']
-            textBody = (event.obj)['textBody']
-            self.pages = math.ceil(len(textBody) / linesPerPage)
-            
-            # for p in range(self.pages):
-            #     textPg = ' '.join(textBody[:linesPerPage])
-            #     self.loadTTS(textPg, f'{audioDir}/pg-{p}.mp3')
-            #     textBody = textBody[linesPerPage:]
-            pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
+        if self.authorized == True:
+            if event.event == bdcast.TEXT:
+                assert self.ttsClient is not None
+                linesPerPage = (event.obj)['maxLines']
+                textBody = (event.obj)['textBody']
+                self.pages = math.ceil(len(textBody) / linesPerPage)
+                
+                for p in range(self.pages):
+                    textPg = ' '.join(textBody[:linesPerPage])
+                    self.loadTTS(textPg, f'{self.audioDir}/{self.title}/pg-{p}.mp3')
+                    textBody = textBody[linesPerPage:]
+        pygame.mixer.music.load(f'{self.audioDir}/{self.title}/pg-{self.currentPg}.mp3')
 
 
     def onMouseClick(self, event: MouseEvent):
@@ -117,18 +135,23 @@ class Audio(Env):
                 if self.currentPg > 0:
                     self.currentPg -= 1
                     pygame.mixer.music.stop()
-                    pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
+                    pygame.mixer.music.load(f'{self.audioDir}/{self.title}/pg-{self.currentPg}.mp3')
                     self.paused = False
             elif self.iconsBounds[3].contains(pt):
                 if self.currentPg < self.pages:
                     self.currentPg += 1
                     pygame.mixer.music.stop()
-                    pygame.mixer.music.load(f'{audioDir}/pg-{self.currentPg}.mp3')
+                    pygame.mixer.music.load(f'{self.audioDir}/{self.title}/pg-{self.currentPg}.mp3')
                     self.paused = False
 
     
+    def onPathDrop(self, event: PathDropEvent):
+        dirs = event.path.split('/')
+        self.title = dirs[-1].rstrip('.txt')
+
     def init(self):
         self.icons = self.loadIcons('./images/play.png', './images/pause.png', './images/prev.png', './images/next.png')
         self.iconsBounds = self.setIcons(self.icons[0].size)
         self.drawImg(self.drawIcons())
-        self.ttsClient = tts.TextToSpeechClient()
+        if self.authorized == True:
+            self.ttsClient = tts.TextToSpeechClient()

@@ -76,13 +76,6 @@ class Window(Env):
             self.xscale = xscale
             self.yscale = yscale
 
-        # def framebufferCallback(win: glfw._GLFWwindow, xscale, yscale):
-        #     xscale, yscale = glfw.get_window_content_scale(self.win)
-        #     print('rescale')
-        #     xratio, yratio = xscale // 1, yscale // 1
-        #     resized = self.image.resize((int(self.image.width * xratio), int(self.image.height * yratio)))
-            # pass
-
         def dropCallback(win: glfw._GLFWwindow, paths):
             pathDrop = PathDropEvent(paths[0])
             self.sendEvent(pathDrop)

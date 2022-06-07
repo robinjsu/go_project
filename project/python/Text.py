@@ -1,3 +1,4 @@
+from tkinter.tix import TEXT
 from typing import List, Callable
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io, os, math, random as rand
@@ -14,7 +15,7 @@ TODO:
 '''
 
 lineSpacing = 10
-fontSize = 20
+fontSize = TEXT_SZ
 input = InputType()
 broadcast = BroadcastType()
 color = Colors()
@@ -169,9 +170,9 @@ class Text(Env):
         Callback function that responds to a key being pressed or released.
         :param event: a KeyEvent object that represents the key pressed and action that occurred.
         '''
-        if keyEvent.key == input.ArrowDown and keyEvent.action == input.Press:
+        if keyEvent.key == input.ArrowUp and keyEvent.action == input.Press:
             self.pagePrev()
-        elif keyEvent.key == input.ArrowUp and keyEvent.action == input.Press:
+        if keyEvent.key == input.ArrowDown and keyEvent.action == input.Press:
             self.pageNext()
 
 

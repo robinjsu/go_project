@@ -25,3 +25,6 @@ WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 800
 TTF = '../../fonts/Anonymous_Pro/AnonymousPro-Regular.ttf'
 TTF_BOLD = '../../fonts/Anonymous_Pro/AnonymousPro-Bold.ttf'
+AUDIO_DIR = './audio'
+TEXT_SZ = 28
+TITLE_SZ = 36
