@@ -21,6 +21,20 @@ import (
 	"github.com/faiface/gui/win"
 )
 
+// func getGoogleClient() (*tts.Client, context.Context) {
+// 	ctx := context.Background()
+// 	jsonCreds, err := os.ReadFile("./tts_client_secret.json")
+// 	if err != nil {
+// 		log.Fatal(FileError{"tts_client_secret.json", err})
+// 	}
+// 	ttsClient, err := tts.NewClient(ctx, option.WithCredentialsJSON(jsonCreds))
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+
+// 	return ttsClient, ctx
+// }
+
 func getBtnIcons() []image.Image {
 	imgFiles := []string{"images/play.png", "images/pause.png", "images/prev.png", "images/next.png"}
 	var images []image.Image
@@ -58,14 +72,14 @@ func drawAudio(images []image.Image) (func(draw.Image) image.Rectangle, []image.
 	return drawPNG, iconsR
 }
 
-func getSpeech(content string, outDir string, outFile string) string {
-	ctx := context.Background()
+func getSpeech(content string, outDir string, outFile string, client *tts.Client, ctx context.Context) string {
+	// ctx := context.Background()
 
-	ttsClient, err := tts.NewClient(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer ttsClient.Close()
+	// ttsClient, err := tts.NewClient(ctx)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer ttsClient.Close()
 
 	req := texttospeechpb.SynthesizeSpeechRequest{
 		Input: &texttospeechpb.SynthesisInput{
@@ -80,7 +94,7 @@ func getSpeech(content string, outDir string, outFile string) string {
 		},
 	}
 
-	resp, err := ttsClient.SynthesizeSpeech(ctx, &req)
+	resp, err := client.SynthesizeSpeech(ctx, &req)
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal(err)
@@ -103,6 +117,7 @@ func playBack(audio *os.File, start <-chan bool, pause <-chan bool, restart <-ch
 	}
 	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
 	controller = &beep.Ctrl{Streamer: nil, Paused: false}
+
 	for {
 		select {
 		case streamer = <-newStream:
@@ -124,7 +139,7 @@ func playBack(audio *os.File, start <-chan bool, pause <-chan bool, restart <-ch
 	}
 }
 
-func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
+func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string, client *tts.Client, ctx context.Context) {
 	var pages [][]string
 	var streamers []beep.StreamSeekCloser
 	var title string
@@ -140,13 +155,20 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 	done := make(chan bool)
 	pg := 0
 
-	creds, _ := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS")
-	if creds == "" {
-		audioDir = "example_audio"
-		authorized = false
-	} else {
+	// creds, _ := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS")
+	// if creds == "" {
+	// 	audioDir = "example_audio"
+	// 	authorized = false
+	// } else {
+	// 	authorized = true
+	// }
+	// client, ctx := getGoogleClient()
+	if client != nil {
 		authorized = true
+	} else {
+		audioDir = "example_audio"
 	}
+	defer client.Close()
 
 	for {
 		select {
@@ -159,7 +181,7 @@ func TextToSpeech(env gui.Env, load chan bool, content <-chan [][]string) {
 				if page != nil {
 					audioFile := fmt.Sprintf("%s/%s/pg-%v.mp3", audioDir, title, i)
 					if authorized {
-						getSpeech(string(strings.Join(page, " ")), title, audioFile)
+						getSpeech(string(strings.Join(page, " ")), title, audioFile, client, ctx)
 					}
 					audio, err := os.Open(audioFile)
 					if err != nil {
