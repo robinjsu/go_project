@@ -8,6 +8,9 @@ from Paging import Paging
 from Audio import Audio
 from const import *
 from pyGui.utils import Box, Point
+from google_auth_oauthlib import flow
+from google.cloud import texttospeech as tts
+
 
 options: Options
 mux: Mux
@@ -19,6 +22,22 @@ dispBox = None
 textBox = None
 defBox = None
 
+# https://cloud.google.com/docs/authentication/end-user
+def oauthFlow():
+    launch_browser = True
+    appflow = flow.InstalledAppFlow.from_client_secrets_file(
+    "tts_client_secret.json", scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    if launch_browser:
+        appflow.run_local_server()
+    else:
+        appflow.run_console()
+
+    creds = appflow.credentials
+    client = tts.TextToSpeechClient(credentials=creds)
+    return client 
+
+
 def setDimensions(window: Window):
     assert window.image != None, 'window and associated drawing image are not initialized'
     x0, y0, x1, y1 = window.image.getbbox()
@@ -28,6 +47,7 @@ def setDimensions(window: Window):
     return display, textBox, defBox
 
 def start():
+    googleClient = oauthFlow()
     options = Options("PyTextAide", WINDOW_WIDTH, WINDOW_HEIGHT, False, None)
     win = Window(options)
     dispBox, textBox, defBox = setDimensions(win)
@@ -38,7 +58,7 @@ def start():
     mux.addEnv(WordList(None, id=4, name='WordListThread'))
     mux.addEnv(DropFile(dispBox, TTF_BOLD, id=5, name='PathDropThread'))
     mux.addEnv(Paging(Point(100, 25), Box(0, textBox.y1, textBox.x1, dispBox.y1), TTF_BOLD, id=6, name='PagingThread'))
-    mux.addEnv(Audio(Box(textBox.x0, textBox.y1, textBox.x1,  dispBox.y1), id=7, name='AudioThread'))
+    mux.addEnv(Audio(Box(textBox.x0, textBox.y1, textBox.x1,  dispBox.y1), id=7, name='AudioThread', googleApiClient=googleClient))
 
     # mux.run starts up all envs that have been added to it
     mux.run()
